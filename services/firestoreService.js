@@ -1519,3 +1519,173 @@ export const updateOrganizationLocation = async (userId, location, address = "")
     throw error;
   }
 };
+
+/**
+ * Get all active study spots with location data for map display
+ * @returns {Promise<Array>} - Array of study spots with location and organization info
+ */
+export const getStudySpotsWithLocations = async () => {
+  try {
+    console.log("📚 Fetching study spots with locations...");
+    
+    // Get all active study spots
+    const studySpotsQuery = query(
+      collection(db, "studySpots"),
+      where("status", "==", "active")
+    );
+    
+    const studySpotsSnapshot = await getDocs(studySpotsQuery);
+    const studySpotsWithLocations = [];
+    
+    // Get unique organization IDs
+    const organizationIds = new Set();
+    const studySpotsList = [];
+    
+    studySpotsSnapshot.forEach((doc) => {
+      const data = doc.data();
+      studySpotsList.push({ id: doc.id, ...data });
+      if (data.organizationId) {
+        organizationIds.add(data.organizationId);
+      }
+    });
+    
+    // Fetch organization profiles
+    const profilesMap = new Map();
+    if (organizationIds.size > 0) {
+      const profilePromises = Array.from(organizationIds).map(async (orgId) => {
+        try {
+          const profileSnap = await getDoc(doc(db, "profiles", orgId));
+          return [orgId, profileSnap.exists() ? profileSnap.data() : null];
+        } catch (error) {
+          console.error(`Error fetching profile for ${orgId}:`, error);
+          return [orgId, null];
+        }
+      });
+      const profileEntries = await Promise.all(profilePromises);
+      profileEntries.forEach(([orgId, profile]) => {
+        if (profile) profilesMap.set(orgId, profile);
+      });
+    }
+    
+    // Filter study spots with location data and add organization info
+    for (const studySpot of studySpotsList) {
+      if (studySpot.location && 
+          studySpot.location.latitude && 
+          studySpot.location.longitude) {
+        const orgProfile = profilesMap.get(studySpot.organizationId);
+        studySpotsWithLocations.push({
+          id: studySpot.id,
+          title: studySpot.title || studySpot.studySpotName || "Study Spot",
+          location: studySpot.location,
+          address: studySpot.studySpotLocation || studySpot.location_text || "",
+          description: studySpot.description || studySpot.studySpotDetails || "",
+          availability: studySpot.availability || "",
+          availabilityHours: studySpot.availabilityHours || "",
+          organizationId: studySpot.organizationId,
+          organizationName: orgProfile?.name || "Organization",
+          organizationVerified: orgProfile?.verificationStatus === "verified",
+          category: "Study Spot",
+        });
+      }
+    }
+    
+    console.log(`✅ Found ${studySpotsWithLocations.length} study spots with locations`);
+    return studySpotsWithLocations;
+  } catch (error) {
+    console.error("Error fetching study spots with locations:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get all active workshops/events with location data for map display
+ * @returns {Promise<Array>} - Array of workshops/events with location and organization info
+ */
+export const getWorkshopsEventsWithLocations = async () => {
+  try {
+    console.log("🎓 Fetching workshops and events with locations...");
+    
+    // Get workshops and competitions (events)
+    const workshopsQuery = query(
+      collection(db, "workshops"),
+      where("status", "==", "active")
+    );
+    const competitionsQuery = query(
+      collection(db, "competitions"),
+      where("status", "==", "active")
+    );
+    
+    const [workshopsSnapshot, competitionsSnapshot] = await Promise.all([
+      getDocs(workshopsQuery),
+      getDocs(competitionsQuery)
+    ]);
+    
+    const eventsWithLocations = [];
+    const organizationIds = new Set();
+    const eventsList = [];
+    
+    // Collect workshops
+    workshopsSnapshot.forEach((doc) => {
+      const data = doc.data();
+      eventsList.push({ id: doc.id, type: "Workshop / Seminar", ...data });
+      if (data.organizationId) {
+        organizationIds.add(data.organizationId);
+      }
+    });
+    
+    // Collect competitions/events
+    competitionsSnapshot.forEach((doc) => {
+      const data = doc.data();
+      eventsList.push({ id: doc.id, type: "Competition / Event", ...data });
+      if (data.organizationId) {
+        organizationIds.add(data.organizationId);
+      }
+    });
+    
+    // Fetch organization profiles
+    const profilesMap = new Map();
+    if (organizationIds.size > 0) {
+      const profilePromises = Array.from(organizationIds).map(async (orgId) => {
+        try {
+          const profileSnap = await getDoc(doc(db, "profiles", orgId));
+          return [orgId, profileSnap.exists() ? profileSnap.data() : null];
+        } catch (error) {
+          console.error(`Error fetching profile for ${orgId}:`, error);
+          return [orgId, null];
+        }
+      });
+      const profileEntries = await Promise.all(profilePromises);
+      profileEntries.forEach(([orgId, profile]) => {
+        if (profile) profilesMap.set(orgId, profile);
+      });
+    }
+    
+    // Filter events with location data and add organization info
+    for (const event of eventsList) {
+      if (event.location && 
+          event.location.latitude && 
+          event.location.longitude) {
+        const orgProfile = profilesMap.get(event.organizationId);
+        eventsWithLocations.push({
+          id: event.id,
+          title: event.title || event.eventName || "Event",
+          location: event.location,
+          address: event.address || event.location_text || "",
+          description: event.description || "",
+          startDate: event.startDate || event.workshopStarts || "",
+          endDate: event.endDate || event.workshopEnds || "",
+          organizationId: event.organizationId,
+          organizationName: orgProfile?.name || "Organization",
+          organizationVerified: orgProfile?.verificationStatus === "verified",
+          category: event.type,
+        });
+      }
+    }
+    
+    console.log(`✅ Found ${eventsWithLocations.length} workshops/events with locations`);
+    return eventsWithLocations;
+  } catch (error) {
+    console.error("Error fetching workshops/events with locations:", error);
+    throw error;
+  }
+};
