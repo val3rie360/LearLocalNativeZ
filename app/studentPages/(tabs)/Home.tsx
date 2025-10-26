@@ -1,13 +1,15 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { memo, useEffect, useState } from "react";
+
+import { memo, useEffect, useState, useRef } from "react";
 import {
   ActivityIndicator,
   Modal,
   RefreshControl,
   ScrollView,
   Text,
+  Animated, Easing,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -149,6 +151,9 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [sortBy, setSortBy] = useState("newest");
+  const scrollViewRef = useRef<ScrollView>(null);
+const [showScrollTop, setShowScrollTop] = useState(false);
+
   const [showSortModal, setShowSortModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [upcomingDeadlines, setUpcomingDeadlines] = useState<
@@ -488,10 +493,16 @@ export default function Home() {
   return (
     <SafeAreaView className="flex-1 bg-[#4B1EB4]" edges={["top"]}>
       <ScrollView
+      ref={scrollViewRef}
         className="bg-[#E0E3FF] flex-1"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
+        onScroll={(event) => {
+    const yOffset = event.nativeEvent.contentOffset.y;
+    setShowScrollTop(yOffset > 400); // show after scrolling 400px
+  }}
+  scrollEventThrottle={16}
       >
         {/* Header */}
         <View className="bg-[#4B1EB4] rounded-b-2xl pb-[100px] px-5">
@@ -818,6 +829,18 @@ export default function Home() {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {showScrollTop && (
+  <TouchableOpacity
+    onPress={() => {
+      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+    }}
+    className="absolute bottom-6 right-6 w-12 h-12 rounded-full bg-[#4B1EB4] items-center justify-center shadow-lg"
+    style={{ elevation: 8 }}
+  >
+    <Ionicons name="arrow-up" size={26} color="#fff" />
+  </TouchableOpacity>
+)}
     </SafeAreaView>
   );
 }
