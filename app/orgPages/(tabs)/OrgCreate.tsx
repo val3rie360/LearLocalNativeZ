@@ -143,6 +143,17 @@ const OrgCreate = () => {
   ];
   const [studySpotDetails, setStudySpotDetails] = useState("");
   const [link, setLink] = useState("");
+  
+  // Competition/Event specific fields
+  const [isInPersonEvent, setIsInPersonEvent] = useState(false);
+  const [eventLocation, setEventLocation] = useState<Location.LocationObject | null>(null);
+  const [eventMapRegion, setEventMapRegion] = useState({
+    latitude: 37.78825,
+    longitude: -122.4324,
+    latitudeDelta: 0.0922,
+    longitudeDelta: 0.0421,
+  });
+  const [showEventMapModal, setShowEventMapModal] = useState(false);
 
   // Workshop/Seminar specific fields
   const [workshopStarts, setWorkshopStarts] = useState("");
@@ -356,6 +367,56 @@ const OrgCreate = () => {
       );
       setShowMapModal(true);
     }
+  };
+
+  const getEventCurrentLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission denied",
+          "Location permission is required to use this feature"
+        );
+        return;
+      }
+
+      const currentLocation = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      setEventLocation(currentLocation);
+      setEventMapRegion({
+        latitude: currentLocation.coords.latitude,
+        longitude: currentLocation.coords.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      });
+      setShowEventMapModal(true);
+    } catch (error) {
+      console.log("Event location error:", error);
+      Alert.alert(
+        "Error",
+        "Failed to get current location. You can still select a location manually on the map."
+      );
+      setShowEventMapModal(true);
+    }
+  };
+
+  const handleEventMapPress = (event: any) => {
+    const { latitude, longitude } = event.nativeEvent.coordinate;
+    const newLocation = {
+      coords: {
+        latitude,
+        longitude,
+        altitude: null,
+        accuracy: null,
+        altitudeAccuracy: null,
+        heading: null,
+        speed: null,
+      },
+      timestamp: Date.now(),
+    };
+    setEventLocation(newLocation);
   };
 
   const handleMapPress = (event: any) => {
@@ -616,6 +677,12 @@ const OrgCreate = () => {
       return;
     }
 
+    // Validate in-person event location
+    if (category === "Competition / Event" && isInPersonEvent && !eventLocation) {
+      setErrorMessage("Please select a location for the in-person event");
+      return;
+    }
+
     const requiresLink = new Set([
       "Scholarship / Grant",
       "Competition / Event",
@@ -659,6 +726,17 @@ const OrgCreate = () => {
                   mimeType: memorandumFile.mimeType,
                 }
               : null,
+          }),
+          // Event-specific fields
+          ...(category === "Competition / Event" && {
+            isInPersonEvent,
+            ...(isInPersonEvent && eventLocation && {
+              location: {
+                latitude: eventLocation.coords.latitude,
+                longitude: eventLocation.coords.longitude,
+                timestamp: eventLocation.timestamp,
+              },
+            }),
           }),
         };
       } else if (category === "Workshop / Seminar") {
@@ -1234,6 +1312,74 @@ const OrgCreate = () => {
               </>
             )}
 
+            {/* In-Person Event Location - Only show for Competition / Event category */}
+            {category === "Competition / Event" && (
+              <>
+                <Text className="text-sm text-black font-semibold mb-1">
+                  Event Type
+                </Text>
+                <View className="flex-row items-center mb-3">
+                  <TouchableOpacity
+                    className={`flex-row items-center px-3 py-2 rounded-lg mr-3 ${
+                      !isInPersonEvent ? "bg-blue-100 border-2 border-blue-300" : "bg-gray-100 border-2 border-gray-300"
+                    }`}
+                    onPress={() => setIsInPersonEvent(false)}
+                  >
+                    <Text className={`text-lg mr-2 ${!isInPersonEvent ? "text-blue-600" : "text-gray-500"}`}>
+                      🌐
+                    </Text>
+                    <Text className={`font-karla ${!isInPersonEvent ? "text-blue-700 font-semibold" : "text-gray-600"}`}>
+                      Online
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    className={`flex-row items-center px-3 py-2 rounded-lg ${
+                      isInPersonEvent ? "bg-green-100 border-2 border-green-300" : "bg-gray-100 border-2 border-gray-300"
+                    }`}
+                    onPress={() => setIsInPersonEvent(true)}
+                  >
+                    <Text className={`text-lg mr-2 ${isInPersonEvent ? "text-green-600" : "text-gray-500"}`}>
+                      🏢
+                    </Text>
+                    <Text className={`font-karla ${isInPersonEvent ? "text-green-700 font-semibold" : "text-gray-600"}`}>
+                      In-Person
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Location Picker - Only show if in-person event is selected */}
+                {isInPersonEvent && (
+                  <>
+                    <Text className="text-sm text-black font-semibold mb-1">
+                      Event Location *
+                    </Text>
+                    <TouchableOpacity
+                      className={`rounded-xl px-3 h-11 justify-center border mb-3 ${
+                        eventLocation
+                          ? "bg-green-50 border-green-300"
+                          : "bg-white border-gray-200"
+                      }`}
+                      onPress={getEventCurrentLocation}
+                    >
+                      <View className="flex-row items-center">
+                        <Text className="text-2xl mr-3">
+                          {eventLocation ? "✅" : "📍"}
+                        </Text>
+                        <Text
+                          className={`text-base flex-1 ${eventLocation ? "text-green-800" : "text-black"}`}
+                        >
+                          {eventLocation
+                            ? `Location selected: ${eventLocation.coords.latitude.toFixed(4)}, ${eventLocation.coords.longitude.toFixed(4)}`
+                            : "Tap to select event location"}
+                        </Text>
+                        <Text className="text-lg text-gray-400">→</Text>
+                      </View>
+                    </TouchableOpacity>
+                  </>
+                )}
+              </>
+            )}
+
             {/* Location Picker - Show for Study Spot and Workshop / Seminar categories */}
             {(category === "Study Spot" ||
               category === "Workshop / Seminar") && (
@@ -1738,6 +1884,70 @@ const OrgCreate = () => {
                   <Text className="text-xs text-gray-500 text-center">
                     {location
                       ? `Current selection: ${location.coords.latitude.toFixed(6)}, ${location.coords.longitude.toFixed(6)}`
+                      : "No location selected yet"}
+                  </Text>
+                </View>
+              </View>
+            </Modal>
+          )}
+
+          {/* Event Location Selection Modal - Only for Competition/Event */}
+          {category === "Competition / Event" && isInPersonEvent && (
+            <Modal
+              visible={showEventMapModal}
+              transparent={false}
+              animationType="slide"
+              onRequestClose={() => setShowEventMapModal(false)}
+            >
+              <View className="flex-1 bg-white">
+                {/* Header */}
+                <View className="flex-row items-center justify-between p-4 bg-[#a084e8]">
+                  <TouchableOpacity
+                    onPress={() => setShowEventMapModal(false)}
+                    className="bg-white rounded-full p-2"
+                  >
+                    <Text className="text-lg text-[#a084e8] font-bold">←</Text>
+                  </TouchableOpacity>
+                  <Text className="text-white text-lg font-bold">
+                    Select Event Location
+                  </Text>
+                  <TouchableOpacity
+                    className="bg-white rounded-full p-2"
+                    onPress={() => setShowEventMapModal(false)}
+                  >
+                    <Text className="text-lg text-[#a084e8] font-bold">✓</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Map */}
+                <View className="flex-1">
+                  <MapView
+                    style={{ flex: 1 }}
+                    region={eventMapRegion}
+                    onPress={handleEventMapPress}
+                  >
+                    {eventLocation && (
+                      <Marker
+                        coordinate={{
+                          latitude: eventLocation.coords.latitude,
+                          longitude: eventLocation.coords.longitude,
+                        }}
+                        title="Event Location"
+                        description="Selected location for event"
+                        pinColor="#a084e8"
+                      />
+                    )}
+                  </MapView>
+                </View>
+
+                {/* Instructions */}
+                <View className="p-4 bg-gray-50">
+                  <Text className="text-sm text-gray-600 text-center mb-2">
+                    Tap anywhere on the map to place a pin for your event location
+                  </Text>
+                  <Text className="text-xs text-gray-500 text-center">
+                    {eventLocation
+                      ? `Current selection: ${eventLocation.coords.latitude.toFixed(6)}, ${eventLocation.coords.longitude.toFixed(6)}`
                       : "No location selected yet"}
                   </Text>
                 </View>
