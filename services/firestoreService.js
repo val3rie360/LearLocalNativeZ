@@ -1691,15 +1691,15 @@ export const getWorkshopsEventsWithLocations = async () => {
 };
 
 /**
- * Get ALL active opportunities with location data for map display
- * Fetches from all opportunity collections: study spots, workshops, events, scholarships, resources
- * @returns {Promise<Array>} - Array of all opportunities with locations grouped by category
+ * Get active opportunities with location data for map display
+ * Fetches from study spots, workshops, and events collections only
+ * @returns {Promise<Array>} - Array of opportunities with locations grouped by category
  */
 export const getAllOpportunitiesWithLocations = async () => {
   try {
-    console.log("🗺️ Fetching ALL opportunities with locations...");
+    console.log("🗺️ Fetching opportunities with locations...");
     
-    // Query all opportunity collections
+    // Query opportunity collections (excluding scholarships and resources)
     const studySpotsQuery = query(
       collection(db, "studySpots"),
       where("status", "==", "active")
@@ -1712,28 +1712,16 @@ export const getAllOpportunitiesWithLocations = async () => {
       collection(db, "competitions"),
       where("status", "==", "active")
     );
-    const scholarshipsQuery = query(
-      collection(db, "scholarships"),
-      where("status", "==", "active")
-    );
-    const resourcesQuery = query(
-      collection(db, "resources"),
-      where("status", "==", "active")
-    );
     
     // Fetch all in parallel
     const [
       studySpotsSnapshot,
       workshopsSnapshot,
-      competitionsSnapshot,
-      scholarshipsSnapshot,
-      resourcesSnapshot
+      competitionsSnapshot
     ] = await Promise.all([
       getDocs(studySpotsQuery),
       getDocs(workshopsQuery),
-      getDocs(competitionsQuery),
-      getDocs(scholarshipsQuery),
-      getDocs(resourcesQuery)
+      getDocs(competitionsQuery)
     ]);
     
     const opportunitiesList = [];
@@ -1770,30 +1758,6 @@ export const getAllOpportunitiesWithLocations = async () => {
         id: doc.id, 
         category: "Competition / Event", 
         collectionType: "competitions",
-        ...data 
-      });
-      if (data.organizationId) organizationIds.add(data.organizationId);
-    });
-    
-    // Collect Scholarships
-    scholarshipsSnapshot.forEach((doc) => {
-      const data = doc.data();
-      opportunitiesList.push({ 
-        id: doc.id, 
-        category: "Scholarship / Grant", 
-        collectionType: "scholarships",
-        ...data 
-      });
-      if (data.organizationId) organizationIds.add(data.organizationId);
-    });
-    
-    // Collect Resources
-    resourcesSnapshot.forEach((doc) => {
-      const data = doc.data();
-      opportunitiesList.push({ 
-        id: doc.id, 
-        category: "Resources", 
-        collectionType: "resources",
         ...data 
       });
       if (data.organizationId) organizationIds.add(data.organizationId);
@@ -1837,9 +1801,6 @@ export const getAllOpportunitiesWithLocations = async () => {
           // Event/Workshop specific
           startDate: opp.startDate || opp.workshopStarts || "",
           endDate: opp.endDate || opp.workshopEnds || "",
-          // Scholarship specific
-          amount: opp.amount || "",
-          deadline: opp.deadline || "",
           // Organization info
           organizationId: opp.organizationId,
           organizationName: orgProfile?.name || "Organization",
@@ -1851,12 +1812,10 @@ export const getAllOpportunitiesWithLocations = async () => {
     console.log(`   📚 Study Spots: ${opportunitiesWithLocations.filter(o => o.category === "Study Spot").length}`);
     console.log(`   🎓 Workshops: ${opportunitiesWithLocations.filter(o => o.category === "Workshop / Seminar").length}`);
     console.log(`   🏆 Events: ${opportunitiesWithLocations.filter(o => o.category === "Competition / Event").length}`);
-    console.log(`   💰 Scholarships: ${opportunitiesWithLocations.filter(o => o.category === "Scholarship / Grant").length}`);
-    console.log(`   📖 Resources: ${opportunitiesWithLocations.filter(o => o.category === "Resources").length}`);
     
     return opportunitiesWithLocations;
   } catch (error) {
-    console.error("Error fetching all opportunities with locations:", error);
+    console.error("Error fetching opportunities with locations:", error);
     throw error;
   }
 };
