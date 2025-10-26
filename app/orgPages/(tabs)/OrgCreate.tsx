@@ -411,7 +411,9 @@ const OrgCreate = () => {
       // Show file info
       Alert.alert(
         "Upload PDF?",
-        `File: ${pickedFile.name}\nSize: ${formatFileSize(pickedFile.size)}\n\nReady to upload this file?`,
+        `File: ${pickedFile.name}\nSize: ${formatFileSize(
+          pickedFile.size
+        )}\n\nReady to upload this file?`,
         [
           { text: "Cancel", style: "cancel" },
           {
@@ -499,7 +501,9 @@ const OrgCreate = () => {
       // Show file info
       Alert.alert(
         "Upload Memorandum?",
-        `File: ${pickedFile.name}\nSize: ${formatFileSize(pickedFile.size)}\n\nReady to upload this memorandum?`,
+        `File: ${pickedFile.name}\nSize: ${formatFileSize(
+          pickedFile.size
+        )}\n\nReady to upload this memorandum?`,
         [
           { text: "Cancel", style: "cancel" },
           {
@@ -578,7 +582,8 @@ const OrgCreate = () => {
     // Validate milestones for Scholarship/Competition categories
     if (
       category === "Scholarship / Grant" ||
-      category === "Competition / Event"
+      category === "Competition / Event" ||
+      category === "Workshop / Seminar"
     ) {
       if (dateMilestones.length === 0) {
         setErrorMessage(
@@ -675,6 +680,7 @@ const OrgCreate = () => {
               longitude: location.coords.longitude,
               timestamp: location.timestamp,
             },
+            ...(dateMilestones.length > 0 && { dateMilestones }),
           };
         }
       } else if (category === "Study Spot") {
@@ -857,7 +863,11 @@ const OrgCreate = () => {
                     }}
                   >
                     <Text
-                      className={`text-base font-karla ${category === cat ? "text-[#4B1EB4] font-karla-bold" : "text-[#18181B]"}`}
+                      className={`text-base font-karla ${
+                        category === cat
+                          ? "text-[#4B1EB4] font-karla-bold"
+                          : "text-[#18181B]"
+                      }`}
                     >
                       {cat}
                     </Text>
@@ -871,8 +881,8 @@ const OrgCreate = () => {
               {category === "Study Spot"
                 ? "Name of Location *"
                 : category === "Workshop / Seminar"
-                  ? "Workshop/Seminar Title *"
-                  : "Title *"}
+                ? "Workshop/Seminar Title *"
+                : "Title *"}
             </Text>
             <TextInput
               className="bg-white rounded-xl px-3 h-11 text-base text-black mb-3"
@@ -882,8 +892,8 @@ const OrgCreate = () => {
                 category === "Study Spot"
                   ? "Enter location name"
                   : category === "Workshop / Seminar"
-                    ? "Enter workshop/seminar title"
-                    : "Enter title"
+                  ? "Enter workshop/seminar title"
+                  : "Enter title"
               }
               placeholderTextColor="#aaa"
             />
@@ -893,10 +903,10 @@ const OrgCreate = () => {
               {category === "Resources"
                 ? "Resource Description *"
                 : category === "Study Spot"
-                  ? "Location Details *"
-                  : category === "Workshop / Seminar"
-                    ? "Workshop/Seminar Description *"
-                    : "Description *"}
+                ? "Location Details *"
+                : category === "Workshop / Seminar"
+                ? "Workshop/Seminar Description *"
+                : "Description *"}
             </Text>
             <TextInput
               className="bg-white rounded-xl px-3 pt-3 text-base text-black mb-3 min-h-[80px] text-top"
@@ -906,10 +916,10 @@ const OrgCreate = () => {
                 category === "Resources"
                   ? "Enter resource description"
                   : category === "Study Spot"
-                    ? "Enter location details"
-                    : category === "Workshop / Seminar"
-                      ? "Enter workshop/seminar description"
-                      : "Enter opportunity description"
+                  ? "Enter location details"
+                  : category === "Workshop / Seminar"
+                  ? "Enter workshop/seminar description"
+                  : "Enter opportunity description"
               }
               placeholderTextColor="#aaa"
               multiline
@@ -917,79 +927,78 @@ const OrgCreate = () => {
             />
 
             {/* Date Milestones - Only show for scholarship and competition categories */}
-            {category !== "Resources" &&
-              category !== "Study Spot" &&
-              category !== "Workshop / Seminar" && (
-                <>
-                  <Text className="text-sm text-black font-semibold mb-1">
-                    Date Milestones *
-                  </Text>
-                  <Text className="text-xs text-gray-600 mb-2">
-                    Add at least one important date (e.g., Application Deadline,
-                    Winner Announcement)
-                  </Text>
+            {(category === "Scholarship / Grant" ||
+              category === "Competition / Event" ||
+              category === "Workshop / Seminar") && (
+              <>
+                <Text className="text-sm text-black font-semibold mb-1">
+                  Date Milestones *
+                </Text>
+                <Text className="text-xs text-gray-600 mb-2">
+                  Add at least one important date (e.g., Application Deadline,
+                  Event Start)
+                </Text>
 
-                  {/* Display existing milestones */}
-                  {dateMilestones.map((milestone, index) => (
-                    <View
-                      key={index}
-                      className="bg-white rounded-xl mb-2 px-3 py-2 flex-row items-center justify-between"
-                    >
-                      <View className="flex-1">
-                        <Text className="text-sm font-karla-bold text-[#4B1EB4]">
-                          {milestone.name}
-                        </Text>
-                        <Text className="text-xs text-gray-600">
-                          {milestone.date}
-                        </Text>
-                      </View>
-                      <TouchableOpacity
-                        onPress={() => removeMilestone(index)}
-                        className="ml-2 p-1"
-                      >
-                        <Text className="text-red-500 text-lg">×</Text>
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-
-                  {/* Add new milestone form */}
-                  <View className="bg-white rounded-xl mb-3 p-3">
-                    <View className="flex-row space-x-2 mb-2">
-                      <TextInput
-                        className="flex-1 bg-gray-50 rounded-lg px-3 h-10 text-base text-black"
-                        value={newMilestoneName}
-                        onChangeText={setNewMilestoneName}
-                        placeholder="Milestone name (e.g., Application Deadline)"
-                        placeholderTextColor="#aaa"
-                      />
-                      <TouchableOpacity
-                        className="flex-1 bg-gray-50 rounded-lg px-3 h-10 justify-center border border-gray-200"
-                        onPress={() => {
-                          console.log("Opening milestone date picker");
-                          setShowMilestoneDatePicker(true);
-                        }}
-                      >
-                        <Text
-                          className={`text-base ${newMilestoneDate ? "text-black" : "text-gray-500"}`}
-                        >
-                          {newMilestoneDate || "Select date"}
-                        </Text>
-                      </TouchableOpacity>
+                {/* Display existing milestones */}
+                {dateMilestones.map((milestone, index) => (
+                  <View
+                    key={index}
+                    className="bg-white rounded-xl mb-2 px-3 py-2 flex-row items-center justify-between"
+                  >
+                    <View className="flex-1">
+                      <Text className="text-sm font-karla-bold text-[#4B1EB4]">
+                        {milestone.name}
+                      </Text>
+                      <Text className="text-xs text-gray-600">
+                        {milestone.date}
+                      </Text>
                     </View>
                     <TouchableOpacity
-                      onPress={addMilestone}
-                      className="bg-[#a084e8] rounded-lg py-2 items-center"
-                      disabled={
-                        !newMilestoneName.trim() || !newMilestoneDate.trim()
-                      }
+                      onPress={() => removeMilestone(index)}
+                      className="ml-2 p-1"
                     >
-                      <Text className="text-white text-sm font-karla-bold">
-                        Add Milestone
+                      <Text className="text-red-500 text-lg">×</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+
+                {/* Add new milestone form */}
+                <View className="bg-white rounded-xl mb-3 p-3">
+                  <View className="flex-row space-x-2 mb-2">
+                    <TextInput
+                      className="flex-1 bg-gray-50 rounded-lg px-3 h-10 text-base text-black"
+                      value={newMilestoneName}
+                      onChangeText={setNewMilestoneName}
+                      placeholder="Milestone name (e.g., Registration Opens)"
+                      placeholderTextColor="#aaa"
+                    />
+                    <TouchableOpacity
+                      className="flex-1 bg-gray-50 rounded-lg px-3 h-10 justify-center border border-gray-200"
+                      onPress={() => setShowMilestoneDatePicker(true)}
+                    >
+                      <Text
+                        className={`text-base ${
+                          newMilestoneDate ? "text-black" : "text-gray-500"
+                        }`}
+                      >
+                        {newMilestoneDate || "Select date"}
                       </Text>
                     </TouchableOpacity>
                   </View>
-                </>
-              )}
+                  <TouchableOpacity
+                    onPress={addMilestone}
+                    className="bg-[#a084e8] rounded-lg py-2 items-center"
+                    disabled={
+                      !newMilestoneName.trim() || !newMilestoneDate.trim()
+                    }
+                  >
+                    <Text className="text-white text-sm font-karla-bold">
+                      Add Milestone
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
 
             {/* Available Times - Show for Study Spot category */}
             {category === "Study Spot" && (
@@ -1008,7 +1017,9 @@ const OrgCreate = () => {
                       }}
                     >
                       <Text
-                        className={`text-base ${openTime ? "text-black" : "text-gray-500"}`}
+                        className={`text-base ${
+                          openTime ? "text-black" : "text-gray-500"
+                        }`}
                       >
                         {openTime || "Select time"}
                       </Text>
@@ -1026,7 +1037,9 @@ const OrgCreate = () => {
                       }}
                     >
                       <Text
-                        className={`text-base ${closeTime ? "text-black" : "text-gray-500"}`}
+                        className={`text-base ${
+                          closeTime ? "text-black" : "text-gray-500"
+                        }`}
                       >
                         {closeTime || "Select time"}
                       </Text>
@@ -1055,7 +1068,9 @@ const OrgCreate = () => {
                       }}
                     >
                       <Text
-                        className={`text-base ${workshopStarts ? "text-black" : "text-gray-500"}`}
+                        className={`text-base ${
+                          workshopStarts ? "text-black" : "text-gray-500"
+                        }`}
                       >
                         {workshopStarts || "Select start time"}
                       </Text>
@@ -1071,7 +1086,9 @@ const OrgCreate = () => {
                       }}
                     >
                       <Text
-                        className={`text-base ${workshopEnds ? "text-black" : "text-gray-500"}`}
+                        className={`text-base ${
+                          workshopEnds ? "text-black" : "text-gray-500"
+                        }`}
                       >
                         {workshopEnds || "Select end time"}
                       </Text>
@@ -1173,7 +1190,8 @@ const OrgCreate = () => {
 
             {/* Official Memorandum Upload - Only show for scholarship and competition categories */}
             {(category === "Scholarship / Grant" ||
-              category === "Competition / Event") && (
+              category === "Competition / Event" ||
+              category === "Workshop / Seminar") && (
               <>
                 <Text className="text-sm text-black font-semibold mb-1">
                   Official Memorandum (Optional)
@@ -1254,10 +1272,14 @@ const OrgCreate = () => {
                       {location ? "✅" : "📍"}
                     </Text>
                     <Text
-                      className={`text-base flex-1 ${location ? "text-green-800" : "text-black"}`}
+                      className={`text-base flex-1 ${
+                        location ? "text-green-800" : "text-black"
+                      }`}
                     >
                       {location
-                        ? `Location selected: ${location.coords.latitude.toFixed(4)}, ${location.coords.longitude.toFixed(4)}`
+                        ? `Location selected: ${location.coords.latitude.toFixed(
+                            4
+                          )}, ${location.coords.longitude.toFixed(4)}`
                         : "Tap to select location"}
                     </Text>
                     <Text className="text-lg text-gray-400">→</Text>
@@ -1678,7 +1700,9 @@ const OrgCreate = () => {
                     disabled={!location}
                   >
                     <Text
-                      className={`text-sm font-bold ${location ? "text-[#a084e8]" : "text-gray-400"}`}
+                      className={`text-sm font-bold ${
+                        location ? "text-[#a084e8]" : "text-gray-400"
+                      }`}
                     >
                       Confirm
                     </Text>
@@ -1737,7 +1761,9 @@ const OrgCreate = () => {
                   </Text>
                   <Text className="text-xs text-gray-500 text-center">
                     {location
-                      ? `Current selection: ${location.coords.latitude.toFixed(6)}, ${location.coords.longitude.toFixed(6)}`
+                      ? `Current selection: ${location.coords.latitude.toFixed(
+                          6
+                        )}, ${location.coords.longitude.toFixed(6)}`
                       : "No location selected yet"}
                   </Text>
                 </View>
