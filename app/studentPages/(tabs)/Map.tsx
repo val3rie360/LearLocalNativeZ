@@ -2,6 +2,7 @@ import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Image, Linking, Platform, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import MapView, { Marker } from "../../../components/PlatformMap";
 import { getAllOpportunitiesWithLocations } from "../../../services/firestoreService";
 
@@ -31,6 +32,7 @@ interface Opportunity {
 type MapItem = Opportunity;
 
 const Map = () => {
+  const router = useRouter();
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [selectedItem, setSelectedItem] = useState<MapItem | null>(null);
   const [loading, setLoading] = useState(true);
@@ -92,6 +94,13 @@ const Map = () => {
         Alert.alert("Error", "Unable to open maps application");
       }
     });
+  }, []);
+
+  const navigateToMapLocation = useCallback((opportunity: Opportunity) => {
+    // Store the opportunity data to show on map
+    setSelectedItem(opportunity);
+    // You could also use router params if needed
+    // router.push(`/studentPages/(tabs)/Map?lat=${opportunity.location.latitude}&lng=${opportunity.location.longitude}`);
   }, []);
 
   return (
@@ -182,11 +191,17 @@ const Map = () => {
           <MapView
             style={{ flex: 1 }}
             initialRegion={{
-              latitude: 9.3077,
-              longitude: 123.3054,
-              latitudeDelta: 0.1,
-              longitudeDelta: 0.1,
+              latitude: selectedItem?.location?.latitude || 9.3077,
+              longitude: selectedItem?.location?.longitude || 123.3054,
+              latitudeDelta: selectedItem ? 0.01 : 0.1,
+              longitudeDelta: selectedItem ? 0.01 : 0.1,
             }}
+            region={selectedItem ? {
+              latitude: selectedItem.location.latitude,
+              longitude: selectedItem.location.longitude,
+              latitudeDelta: 0.01,
+              longitudeDelta: 0.01,
+            } : undefined}
           >
             {/* Opportunity Markers - Different colors per category */}
             {displayedOpportunities.map((opp) => {
@@ -313,6 +328,49 @@ const Map = () => {
                           </Text>
                         )}
                       </View>
+                    )}
+
+                    {/* Map Preview - For Study Spots */}
+                    {opp.category === "Study Spot" && (
+                      <TouchableOpacity 
+                        className="rounded-xl overflow-hidden mb-3"
+                        onPress={() => navigateToMapLocation(opp)}
+                        activeOpacity={0.8}
+                      >
+                        <View className="h-24 bg-gray-100">
+                          <MapView
+                            style={{ flex: 1 }}
+                            region={{
+                              latitude: opp.location.latitude,
+                              longitude: opp.location.longitude,
+                              latitudeDelta: 0.01,
+                              longitudeDelta: 0.01,
+                            }}
+                            scrollEnabled={false}
+                            zoomEnabled={false}
+                            pitchEnabled={false}
+                            rotateEnabled={false}
+                            moveOnMarkerPress={false}
+                          >
+                            <Marker
+                              coordinate={{
+                                latitude: opp.location.latitude,
+                                longitude: opp.location.longitude,
+                              }}
+                              pinColor="#10B981"
+                            />
+                          </MapView>
+                        </View>
+                        <View className="bg-[#D1FAE5] px-3 py-2 flex-row items-center justify-between">
+                          <View className="flex-row items-center">
+                            <Ionicons name="map" size={16} color="#10B981" />
+                            <Text className="ml-2 text-[#10B981] text-[12px] font-karla-bold">
+                              View on Map
+                            </Text>
+                          </View>
+                          <Ionicons name="chevron-forward" size={16} color="#10B981" />
+                        </View>
+                      </TouchableOpacity>
                     )}
 
                     {/* Date Range - For Workshops/Events */}
