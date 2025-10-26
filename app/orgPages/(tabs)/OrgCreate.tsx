@@ -2006,21 +2006,30 @@ const OrgCreate = () => {
                       </Text>
                     </TouchableOpacity>
                   </View>
-                  <TouchableOpacity
-                    className={`rounded-xl py-4 px-6 ${
-                      location 
-                        ? "bg-[#a084e8]" 
-                        : "bg-gray-300"
-                    }`}
-                    onPress={() => setShowMapModal(false)}
-                    disabled={!location}
-                  >
-                    <Text className={`text-center text-lg font-bold ${
-                      location ? "text-white" : "text-gray-500"
-                    }`}>
-                      {location ? "✓ Confirm Location" : "Select a location first"}
-                    </Text>
-                  </TouchableOpacity>
+                  <View className="flex-row space-x-3">
+                    <TouchableOpacity
+                      className={`flex-1 rounded-xl py-4 px-6 ${
+                        location 
+                          ? "bg-green-500" 
+                          : "bg-gray-300"
+                      }`}
+                      disabled={!location}
+                    >
+                      <Text className={`text-center text-lg font-bold ${
+                        location ? "text-white" : "text-gray-500"
+                      }`}>
+                        {location ? "✓ Location Confirmed" : "Select a location first"}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      className="flex-1 bg-[#a084e8] rounded-xl py-4 px-6"
+                      onPress={() => setShowMapModal(false)}
+                    >
+                      <Text className="text-center text-lg font-bold text-white">
+                        Done
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
             </Modal>
@@ -2094,21 +2103,30 @@ const OrgCreate = () => {
                       </Text>
                     </TouchableOpacity>
                   </View>
-                  <TouchableOpacity
-                    className={`rounded-xl py-4 px-6 ${
-                      eventLocation 
-                        ? "bg-[#a084e8]" 
-                        : "bg-gray-300"
-                    }`}
-                    onPress={() => setShowEventMapModal(false)}
-                    disabled={!eventLocation}
-                  >
-                    <Text className={`text-center text-lg font-bold ${
-                      eventLocation ? "text-white" : "text-gray-500"
-                    }`}>
-                      {eventLocation ? "✓ Confirm Location" : "Select a location first"}
-                    </Text>
-                  </TouchableOpacity>
+                  <View className="flex-row space-x-3">
+                    <TouchableOpacity
+                      className={`flex-1 rounded-xl py-4 px-6 ${
+                        eventLocation 
+                          ? "bg-green-500" 
+                          : "bg-gray-300"
+                      }`}
+                      disabled={!eventLocation}
+                    >
+                      <Text className={`text-center text-lg font-bold ${
+                        eventLocation ? "text-white" : "text-gray-500"
+                      }`}>
+                        {eventLocation ? "✓ Location Confirmed" : "Select a location first"}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      className="flex-1 bg-[#a084e8] rounded-xl py-4 px-6"
+                      onPress={() => setShowEventMapModal(false)}
+                    >
+                      <Text className="text-center text-lg font-bold text-white">
+                        Done
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
             </Modal>
@@ -2182,21 +2200,30 @@ const OrgCreate = () => {
                       </Text>
                     </TouchableOpacity>
                   </View>
-                  <TouchableOpacity
-                    className={`rounded-xl py-4 px-6 ${
-                      workshopLocation 
-                        ? "bg-[#a084e8]" 
-                        : "bg-gray-300"
-                    }`}
-                    onPress={() => setShowWorkshopMapModal(false)}
-                    disabled={!workshopLocation}
-                  >
-                    <Text className={`text-center text-lg font-bold ${
-                      workshopLocation ? "text-white" : "text-gray-500"
-                    }`}>
-                      {workshopLocation ? "✓ Confirm Location" : "Select a location first"}
-                    </Text>
-                  </TouchableOpacity>
+                  <View className="flex-row space-x-3">
+                    <TouchableOpacity
+                      className={`flex-1 rounded-xl py-4 px-6 ${
+                        workshopLocation 
+                          ? "bg-green-500" 
+                          : "bg-gray-300"
+                      }`}
+                      disabled={!workshopLocation}
+                    >
+                      <Text className={`text-center text-lg font-bold ${
+                        workshopLocation ? "text-white" : "text-gray-500"
+                      }`}>
+                        {workshopLocation ? "✓ Location Confirmed" : "Select a location first"}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      className="flex-1 bg-[#a084e8] rounded-xl py-4 px-6"
+                      onPress={() => setShowWorkshopMapModal(false)}
+                    >
+                      <Text className="text-center text-lg font-bold text-white">
+                        Done
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
             </Modal>
