@@ -13,84 +13,48 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import MapView, { Marker } from "../../../components/PlatformMap";
-import {
-  getOrganizationsWithLocations,
-  getStudySpotsWithLocations,
-  getWorkshopsEventsWithLocations,
-} from "../../../services/firestoreService";
+import { getAllOpportunitiesWithLocations } from "../../../services/firestoreService";
 
-interface Organization {
-  id: string;
-  name: string;
-  location: {
-    latitude: number;
-    longitude: number;
-  };
-  email?: string;
-  photoURL?: string;
-  address?: string;
-  description?: string;
-  category?: string;
-}
-
-interface StudySpot {
+interface Opportunity {
   id: string;
   title: string;
+  category: string;
+  collectionType: string;
   location: {
     latitude: number;
     longitude: number;
   };
   address?: string;
   description?: string;
+  // Study Spot specific
   availability?: string;
   availabilityHours?: string;
-  organizationId: string;
-  organizationName: string;
-  organizationVerified: boolean;
-  category: string;
-}
-
-interface WorkshopEvent {
-  id: string;
-  title: string;
-  location: {
-    latitude: number;
-    longitude: number;
-  };
-  address?: string;
-  description?: string;
+  // Event/Workshop specific
   startDate?: string;
   endDate?: string;
+  // Organization info
   organizationId: string;
   organizationName: string;
   organizationVerified: boolean;
-  category: string;
 }
 
-type MapItem = Organization | StudySpot | WorkshopEvent;
+type MapItem = Opportunity;
 
 const Map = () => {
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [studySpots, setStudySpots] = useState<StudySpot[]>([]);
-  const [workshopsEvents, setWorkshopsEvents] = useState<WorkshopEvent[]>([]);
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [selectedItem, setSelectedItem] = useState<MapItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilter, setShowFilter] = useState<
-    "all" | "organizations" | "studySpots" | "events"
+    "all" | "studySpots" | "workshops" | "events"
   >("all");
 
   const loadMapData = useCallback(async () => {
     try {
       setLoading(true);
-      const [orgs, spots, events] = await Promise.all([
-        getOrganizationsWithLocations(),
-        getStudySpotsWithLocations(),
-        getWorkshopsEventsWithLocations(),
-      ]);
-      setOrganizations(orgs);
-      setStudySpots(spots);
-      setWorkshopsEvents(events);
+      const opps = await getAllOpportunitiesWithLocations();
+      setOpportunities(opps);
+      console.log("📍 Map loaded:", opps.length, "opportunities");
     } catch (error) {
       console.error("Error loading map data:", error);
     } finally {
@@ -102,38 +66,24 @@ const Map = () => {
     loadMapData();
   }, [loadMapData]);
 
-  const filteredOrganizations = organizations.filter(
-    (org) =>
-      org.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      org.address?.toLowerCase().includes(searchQuery.toLowerCase())
+  // Filter by search query
+  const filteredOpportunities = opportunities.filter(
+    (opp) =>
+      opp.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      opp.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      opp.organizationName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      opp.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const filteredStudySpots = studySpots.filter(
-    (spot) =>
-      spot.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      spot.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      spot.organizationName.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const filteredWorkshopsEvents = workshopsEvents.filter(
-    (event) =>
-      event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.organizationName.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const displayedOrganizations =
-    showFilter === "studySpots" || showFilter === "events"
-      ? []
-      : filteredOrganizations;
-  const displayedStudySpots =
-    showFilter === "organizations" || showFilter === "events"
-      ? []
-      : filteredStudySpots;
-  const displayedWorkshopsEvents =
-    showFilter === "organizations" || showFilter === "studySpots"
-      ? []
-      : filteredWorkshopsEvents;
+  // Apply category filter
+  const displayedOpportunities = filteredOpportunities.filter((opp) => {
+    if (showFilter === "all") return true;
+    if (showFilter === "studySpots") return opp.category === "Study Spot";
+    if (showFilter === "workshops")
+      return opp.category === "Workshop / Seminar";
+    if (showFilter === "events") return opp.category === "Competition / Event";
+    return false;
+  });
 
   const openDirections = useCallback(
     (latitude: number, longitude: number, label: string) => {
@@ -206,8 +156,8 @@ const Map = () => {
       </View>
 
       {/* Filter Tabs */}
-      <View className="flex-row px-3 pb-2">
-        <View className="flex-row gap-2">
+      <View className="px-3 pb-2">
+        <View className="flex-row gap-2 flex-wrap">
           <TouchableOpacity
             onPress={() => setShowFilter("all")}
             className={`px-3 py-2 rounded-full ${
@@ -219,25 +169,7 @@ const Map = () => {
                 showFilter === "all" ? "text-[#4B1EB4]" : "text-white"
               }`}
             >
-              All (
-              {organizations.length +
-                studySpots.length +
-                workshopsEvents.length}
-              )
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setShowFilter("organizations")}
-            className={`px-3 py-2 rounded-full ${
-              showFilter === "organizations" ? "bg-white" : "bg-[#5B2DD1]"
-            }`}
-          >
-            <Text
-              className={`font-karla-bold text-[12px] ${
-                showFilter === "organizations" ? "text-[#4B1EB4]" : "text-white"
-              }`}
-            >
-              Orgs ({organizations.length})
+              All ({opportunities.length})
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -251,7 +183,27 @@ const Map = () => {
                 showFilter === "studySpots" ? "text-[#4B1EB4]" : "text-white"
               }`}
             >
-              Study ({studySpots.length})
+              Study (
+              {opportunities.filter((o) => o.category === "Study Spot").length})
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setShowFilter("workshops")}
+            className={`px-3 py-2 rounded-full ${
+              showFilter === "workshops" ? "bg-white" : "bg-[#5B2DD1]"
+            }`}
+          >
+            <Text
+              className={`font-karla-bold text-[12px] ${
+                showFilter === "workshops" ? "text-[#4B1EB4]" : "text-white"
+              }`}
+            >
+              Workshops (
+              {
+                opportunities.filter((o) => o.category === "Workshop / Seminar")
+                  .length
+              }
+              )
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -265,7 +217,13 @@ const Map = () => {
                 showFilter === "events" ? "text-[#4B1EB4]" : "text-white"
               }`}
             >
-              Events ({workshopsEvents.length})
+              Events (
+              {
+                opportunities.filter(
+                  (o) => o.category === "Competition / Event"
+                ).length
+              }
+              )
             </Text>
           </TouchableOpacity>
         </View>
@@ -290,50 +248,36 @@ const Map = () => {
               longitudeDelta: 0.1,
             }}
           >
-            {/* Organization Markers - Purple */}
-            {displayedOrganizations.map((org) => (
-              <Marker
-                key={`org-${org.id}`}
-                coordinate={{
-                  latitude: org.location.latitude,
-                  longitude: org.location.longitude,
-                }}
-                title={org.name}
-                description={org.address || "Organization"}
-                pinColor="#4B1EB4"
-                onPress={() => setSelectedItem(org)}
-              />
-            ))}
+            {/* Opportunity Markers - Different colors per category */}
+            {displayedOpportunities.map((opp) => {
+              // Determine pin color based on category
+              const getPinColor = () => {
+                switch (opp.category) {
+                  case "Study Spot":
+                    return "#10B981"; // Green
+                  case "Workshop / Seminar":
+                    return "#3B82F6"; // Blue
+                  case "Competition / Event":
+                    return "#F97316"; // Orange
+                  default:
+                    return "#6B7280"; // Gray fallback
+                }
+              };
 
-            {/* Study Spot Markers - Green */}
-            {displayedStudySpots.map((spot) => (
-              <Marker
-                key={`spot-${spot.id}`}
-                coordinate={{
-                  latitude: spot.location.latitude,
-                  longitude: spot.location.longitude,
-                }}
-                title={spot.title}
-                description={spot.address || "Study Spot"}
-                pinColor="#10B981"
-                onPress={() => setSelectedItem(spot)}
-              />
-            ))}
-
-            {/* Workshop/Event Markers - Orange */}
-            {displayedWorkshopsEvents.map((event) => (
-              <Marker
-                key={`event-${event.id}`}
-                coordinate={{
-                  latitude: event.location.latitude,
-                  longitude: event.location.longitude,
-                }}
-                title={event.title}
-                description={event.address || "Workshop/Event"}
-                pinColor="#F97316"
-                onPress={() => setSelectedItem(event)}
-              />
-            ))}
+              return (
+                <Marker
+                  key={`opp-${opp.id}-${opp.category}`}
+                  coordinate={{
+                    latitude: opp.location.latitude,
+                    longitude: opp.location.longitude,
+                  }}
+                  title={opp.title}
+                  description={opp.address || opp.category}
+                  pinColor={getPinColor()}
+                  onPress={() => setSelectedItem(opp)}
+                />
+              );
+            })}
           </MapView>
         )}
       </View>
@@ -350,247 +294,196 @@ const Map = () => {
               <Ionicons name="close" size={20} color="#18181B" />
             </TouchableOpacity>
 
-            {/* Display for Organizations */}
-            {"name" in selectedItem ? (
-              <>
-                {/* Organization Photo */}
-                {selectedItem.photoURL ? (
-                  <Image
-                    source={{ uri: selectedItem.photoURL }}
-                    className="w-full h-32 rounded-xl mb-3"
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View className="w-full h-32 rounded-xl mb-3 bg-[#E5E0FF] items-center justify-center">
-                    <Ionicons name="business" size={48} color="#4B1EB4" />
-                  </View>
-                )}
+            {/* Display for Opportunities */}
+            {"category" in selectedItem
+              ? /* Display for All Opportunities (Study Spots, Workshops, Events, Scholarships, Resources) */
+                (() => {
+                  const opp = selectedItem as Opportunity;
 
-                {/* Organization Name */}
-                <Text className="font-karla-bold text-[18px] text-[#18181B] mb-2">
-                  {selectedItem.name}
-                </Text>
+                  // Dynamic styling based on category
+                  const getCategoryStyle = () => {
+                    switch (opp.category) {
+                      case "Study Spot":
+                        return {
+                          bg: "#D1FAE5",
+                          color: "#10B981",
+                          icon: "book" as const,
+                          iconOutline: "book-outline" as const,
+                        };
+                      case "Workshop / Seminar":
+                        return {
+                          bg: "#DBEAFE",
+                          color: "#3B82F6",
+                          icon: "school" as const,
+                          iconOutline: "school-outline" as const,
+                        };
+                      case "Competition / Event":
+                        return {
+                          bg: "#FED7AA",
+                          color: "#F97316",
+                          icon: "calendar" as const,
+                          iconOutline: "calendar-outline" as const,
+                        };
+                      default:
+                        return {
+                          bg: "#F3F4F6",
+                          color: "#6B7280",
+                          icon: "information-circle" as const,
+                          iconOutline: "information-circle-outline" as const,
+                        };
+                    }
+                  };
+                  const style = getCategoryStyle();
 
-                {/* Verification Badge */}
-                <View className="flex-row items-center mb-3">
-                  <View className="bg-[#DBEAFE] rounded-full px-3 py-1 flex-row items-center">
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={16}
-                      color="#1D4ED8"
-                    />
-                    <Text className="text-[#1D4ED8] text-[12px] font-karla-bold ml-1">
-                      Verified Organization
-                    </Text>
-                  </View>
-                </View>
+                  return (
+                    <>
+                      {/* Icon */}
+                      <View
+                        className="w-full h-32 rounded-xl mb-3 items-center justify-center"
+                        style={{ backgroundColor: style.bg }}
+                      >
+                        <Ionicons
+                          name={style.icon}
+                          size={48}
+                          color={style.color}
+                        />
+                      </View>
 
-                {/* Address */}
-                {selectedItem.address && (
-                  <View className="flex-row items-start mb-3">
-                    <MaterialIcons
-                      name="location-on"
-                      size={18}
-                      color="#4B1EB4"
-                    />
-                    <Text className="ml-2 flex-1 text-[#18181B] text-[13px] font-karla">
-                      {selectedItem.address}
-                    </Text>
-                  </View>
-                )}
-
-                {/* Description */}
-                {selectedItem.description && (
-                  <Text className="text-[#6B7280] text-[13px] font-karla mb-3">
-                    {selectedItem.description}
-                  </Text>
-                )}
-
-                {/* Contact */}
-                {selectedItem.email && (
-                  <View className="flex-row items-center mb-3">
-                    <Ionicons name="mail" size={16} color="#4B1EB4" />
-                    <Text className="ml-2 text-[#18181B] text-[13px] font-karla">
-                      {selectedItem.email}
-                    </Text>
-                  </View>
-                )}
-              </>
-            ) : "startDate" in selectedItem ? (
-              /* Display for Workshops/Events */
-              <>
-                {/* Event Icon */}
-                <View className="w-full h-32 rounded-xl mb-3 bg-[#FED7AA] items-center justify-center">
-                  <Ionicons name="calendar" size={48} color="#F97316" />
-                </View>
-
-                {/* Event Title */}
-                <Text className="font-karla-bold text-[18px] text-[#18181B] mb-2">
-                  {selectedItem.title}
-                </Text>
-
-                {/* Category Badge */}
-                <View className="flex-row items-center mb-3">
-                  <View className="bg-[#FED7AA] rounded-full px-3 py-1 flex-row items-center">
-                    <Ionicons
-                      name="calendar-outline"
-                      size={16}
-                      color="#F97316"
-                    />
-                    <Text className="text-[#F97316] text-[12px] font-karla-bold ml-1">
-                      {selectedItem.category}
-                    </Text>
-                  </View>
-                  {selectedItem.organizationVerified && (
-                    <View className="bg-[#DBEAFE] rounded-full px-3 py-1 flex-row items-center ml-2">
-                      <Ionicons
-                        name="checkmark-circle"
-                        size={14}
-                        color="#1D4ED8"
-                      />
-                      <Text className="text-[#1D4ED8] text-[11px] font-karla-bold ml-1">
-                        Verified
+                      {/* Title */}
+                      <Text className="font-karla-bold text-[18px] text-[#18181B] mb-2">
+                        {opp.title}
                       </Text>
-                    </View>
-                  )}
-                </View>
 
-                {/* Address */}
-                {selectedItem.address && (
-                  <View className="flex-row items-start mb-3">
-                    <MaterialIcons
-                      name="location-on"
-                      size={18}
-                      color="#F97316"
-                    />
-                    <Text className="ml-2 flex-1 text-[#18181B] text-[13px] font-karla">
-                      {selectedItem.address}
-                    </Text>
-                  </View>
-                )}
+                      {/* Category Badge */}
+                      <View className="flex-row items-center mb-3">
+                        <View
+                          className="rounded-full px-3 py-1 flex-row items-center"
+                          style={{ backgroundColor: style.bg }}
+                        >
+                          <Ionicons
+                            name={style.iconOutline}
+                            size={16}
+                            color={style.color}
+                          />
+                          <Text
+                            className="text-[12px] font-karla-bold ml-1"
+                            style={{ color: style.color }}
+                          >
+                            {opp.category}
+                          </Text>
+                        </View>
+                        {opp.organizationVerified && (
+                          <View className="bg-[#DBEAFE] rounded-full px-3 py-1 flex-row items-center ml-2">
+                            <Ionicons
+                              name="checkmark-circle"
+                              size={14}
+                              color="#1D4ED8"
+                            />
+                            <Text className="text-[#1D4ED8] text-[11px] font-karla-bold ml-1">
+                              Verified
+                            </Text>
+                          </View>
+                        )}
+                      </View>
 
-                {/* Date Range - Highlighted */}
-                {(selectedItem.startDate || selectedItem.endDate) && (
-                  <View className="bg-[#FED7AA] rounded-xl p-3 mb-3">
-                    <View className="flex-row items-center mb-1">
-                      <Ionicons name="calendar" size={18} color="#F97316" />
-                      <Text className="ml-2 font-karla-bold text-[14px] text-[#F97316]">
-                        Event Schedule
-                      </Text>
-                    </View>
-                    {selectedItem.startDate && (
-                      <Text className="ml-7 text-[#18181B] text-[13px] font-karla">
-                        Start: {selectedItem.startDate}
-                      </Text>
-                    )}
-                    {selectedItem.endDate && (
-                      <Text className="ml-7 text-[#18181B] text-[13px] font-karla">
-                        End: {selectedItem.endDate}
-                      </Text>
-                    )}
-                  </View>
-                )}
+                      {/* Address */}
+                      {opp.address && (
+                        <View className="flex-row items-start mb-3">
+                          <MaterialIcons
+                            name="location-on"
+                            size={18}
+                            color={style.color}
+                          />
+                          <Text className="ml-2 flex-1 text-[#18181B] text-[13px] font-karla">
+                            {opp.address}
+                          </Text>
+                        </View>
+                      )}
 
-                {/* Organization Info */}
-                <View className="flex-row items-center mb-3">
-                  <Ionicons name="business-outline" size={16} color="#6B7280" />
-                  <Text className="ml-2 text-[#6B7280] text-[13px] font-karla">
-                    By {selectedItem.organizationName}
-                  </Text>
-                </View>
+                      {/* Availability - For Study Spots */}
+                      {opp.availability && (
+                        <View
+                          className="rounded-xl p-3 mb-3"
+                          style={{ backgroundColor: style.bg }}
+                        >
+                          <View className="flex-row items-center mb-1">
+                            <Ionicons
+                              name="time"
+                              size={18}
+                              color={style.color}
+                            />
+                            <Text
+                              className="ml-2 font-karla-bold text-[14px]"
+                              style={{ color: style.color }}
+                            >
+                              Availability
+                            </Text>
+                          </View>
+                          <Text className="ml-7 text-[#18181B] text-[13px] font-karla">
+                            {opp.availability}
+                          </Text>
+                          {opp.availabilityHours && (
+                            <Text className="ml-7 text-[#18181B] text-[13px] font-karla-bold mt-1">
+                              Hours: {opp.availabilityHours}
+                            </Text>
+                          )}
+                        </View>
+                      )}
 
-                {/* Description */}
-                {selectedItem.description && (
-                  <Text className="text-[#6B7280] text-[13px] font-karla mb-3">
-                    {selectedItem.description}
-                  </Text>
-                )}
-              </>
-            ) : (
-              /* Display for Study Spots */
-              <>
-                {/* Study Spot Icon */}
-                <View className="w-full h-32 rounded-xl mb-3 bg-[#D1FAE5] items-center justify-center">
-                  <Ionicons name="book" size={48} color="#10B981" />
-                </View>
+                      {/* Date Range - For Workshops/Events */}
+                      {(opp.startDate || opp.endDate) && (
+                        <View
+                          className="rounded-xl p-3 mb-3"
+                          style={{ backgroundColor: style.bg }}
+                        >
+                          <View className="flex-row items-center mb-1">
+                            <Ionicons
+                              name="calendar"
+                              size={18}
+                              color={style.color}
+                            />
+                            <Text
+                              className="ml-2 font-karla-bold text-[14px]"
+                              style={{ color: style.color }}
+                            >
+                              Event Schedule
+                            </Text>
+                          </View>
+                          {opp.startDate && (
+                            <Text className="ml-7 text-[#18181B] text-[13px] font-karla">
+                              Start: {opp.startDate}
+                            </Text>
+                          )}
+                          {opp.endDate && (
+                            <Text className="ml-7 text-[#18181B] text-[13px] font-karla">
+                              End: {opp.endDate}
+                            </Text>
+                          )}
+                        </View>
+                      )}
 
-                {/* Study Spot Title */}
-                <Text className="font-karla-bold text-[18px] text-[#18181B] mb-2">
-                  {selectedItem.title}
-                </Text>
+                      {/* Organization Info */}
+                      <View className="flex-row items-center mb-3">
+                        <Ionicons
+                          name="business-outline"
+                          size={16}
+                          color="#6B7280"
+                        />
+                        <Text className="ml-2 text-[#6B7280] text-[13px] font-karla">
+                          By {opp.organizationName}
+                        </Text>
+                      </View>
 
-                {/* Category Badge */}
-                <View className="flex-row items-center mb-3">
-                  <View className="bg-[#D1FAE5] rounded-full px-3 py-1 flex-row items-center">
-                    <Ionicons name="book-outline" size={16} color="#10B981" />
-                    <Text className="text-[#10B981] text-[12px] font-karla-bold ml-1">
-                      Study Spot
-                    </Text>
-                  </View>
-                  {selectedItem.organizationVerified && (
-                    <View className="bg-[#DBEAFE] rounded-full px-3 py-1 flex-row items-center ml-2">
-                      <Ionicons
-                        name="checkmark-circle"
-                        size={14}
-                        color="#1D4ED8"
-                      />
-                      <Text className="text-[#1D4ED8] text-[11px] font-karla-bold ml-1">
-                        Verified
-                      </Text>
-                    </View>
-                  )}
-                </View>
-
-                {/* Address */}
-                {selectedItem.address && (
-                  <View className="flex-row items-start mb-3">
-                    <MaterialIcons
-                      name="location-on"
-                      size={18}
-                      color="#10B981"
-                    />
-                    <Text className="ml-2 flex-1 text-[#18181B] text-[13px] font-karla">
-                      {selectedItem.address}
-                    </Text>
-                  </View>
-                )}
-
-                {/* Availability - Highlighted */}
-                {selectedItem.availability && (
-                  <View className="bg-[#D1FAE5] rounded-xl p-3 mb-3">
-                    <View className="flex-row items-center mb-1">
-                      <Ionicons name="time" size={18} color="#10B981" />
-                      <Text className="ml-2 font-karla-bold text-[14px] text-[#10B981]">
-                        Availability
-                      </Text>
-                    </View>
-                    <Text className="ml-7 text-[#18181B] text-[13px] font-karla">
-                      {selectedItem.availability}
-                    </Text>
-                    {selectedItem.availabilityHours && (
-                      <Text className="ml-7 text-[#18181B] text-[13px] font-karla-bold mt-1">
-                        Hours: {selectedItem.availabilityHours}
-                      </Text>
-                    )}
-                  </View>
-                )}
-
-                {/* Organization Info */}
-                <View className="flex-row items-center mb-3">
-                  <Ionicons name="business-outline" size={16} color="#6B7280" />
-                  <Text className="ml-2 text-[#6B7280] text-[13px] font-karla">
-                    By {selectedItem.organizationName}
-                  </Text>
-                </View>
-
-                {/* Description */}
-                {selectedItem.description && (
-                  <Text className="text-[#6B7280] text-[13px] font-karla mb-3">
-                    {selectedItem.description}
-                  </Text>
-                )}
-              </>
-            )}
+                      {/* Description */}
+                      {opp.description && (
+                        <Text className="text-[#6B7280] text-[13px] font-karla mb-3">
+                          {opp.description}
+                        </Text>
+                      )}
+                    </>
+                  );
+                })()
+              : null}
 
             {/* Action Buttons */}
             <View className="flex-row gap-2">
@@ -599,10 +492,7 @@ const Map = () => {
                 onPress={() => {
                   const lat = selectedItem.location.latitude;
                   const lng = selectedItem.location.longitude;
-                  const label =
-                    "name" in selectedItem
-                      ? selectedItem.name
-                      : selectedItem.title;
+                  const label = selectedItem.title;
                   openDirections(lat, lng, label);
                 }}
               >
@@ -620,9 +510,7 @@ const Map = () => {
                 className="flex-1 bg-[#E5E0FF] rounded-full py-3 flex-row items-center justify-center"
                 onPress={() => {
                   Alert.alert(
-                    "name" in selectedItem
-                      ? selectedItem.name
-                      : selectedItem.title,
+                    selectedItem.title,
                     selectedItem.description ||
                       "No additional details available",
                     [{ text: "OK" }]
@@ -655,10 +543,7 @@ const Map = () => {
                 </View>
                 <View className="ml-3">
                   <Text className="font-karla-bold text-[15px] text-[#18181B]">
-                    {organizations.length +
-                      studySpots.length +
-                      workshopsEvents.length}{" "}
-                    Locations
+                    {opportunities.length} Locations
                   </Text>
                   <Text className="font-karla text-[12px] text-[#6B7280]">
                     Tap a pin to view details
@@ -671,21 +556,38 @@ const Map = () => {
             <View className="mt-3 pt-3 border-t border-gray-200">
               <View className="flex-row flex-wrap gap-3">
                 <View className="flex-row items-center">
-                  <View className="w-3 h-3 rounded-full bg-[#4B1EB4] mr-1.5" />
+                  <View className="w-3 h-3 rounded-full bg-[#10B981] mr-1.5" />
                   <Text className="font-karla text-[11px] text-[#6B7280]">
-                    Orgs ({organizations.length})
+                    Study (
+                    {
+                      opportunities.filter((o) => o.category === "Study Spot")
+                        .length
+                    }
+                    )
                   </Text>
                 </View>
                 <View className="flex-row items-center">
-                  <View className="w-3 h-3 rounded-full bg-[#10B981] mr-1.5" />
+                  <View className="w-3 h-3 rounded-full bg-[#3B82F6] mr-1.5" />
                   <Text className="font-karla text-[11px] text-[#6B7280]">
-                    Study ({studySpots.length})
+                    Workshops (
+                    {
+                      opportunities.filter(
+                        (o) => o.category === "Workshop / Seminar"
+                      ).length
+                    }
+                    )
                   </Text>
                 </View>
                 <View className="flex-row items-center">
                   <View className="w-3 h-3 rounded-full bg-[#F97316] mr-1.5" />
                   <Text className="font-karla text-[11px] text-[#6B7280]">
-                    Events ({workshopsEvents.length})
+                    Events (
+                    {
+                      opportunities.filter(
+                        (o) => o.category === "Competition / Event"
+                      ).length
+                    }
+                    )
                   </Text>
                 </View>
               </View>

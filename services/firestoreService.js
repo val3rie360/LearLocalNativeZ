@@ -1818,3 +1818,153 @@ export const getWorkshopsEventsWithLocations = async () => {
     throw error;
   }
 };
+
+/**
+ * Get active opportunities with location data for map display
+ * Fetches from study spots, workshops, and events collections only
+ * @returns {Promise<Array>} - Array of opportunities with locations grouped by category
+ */
+export const getAllOpportunitiesWithLocations = async () => {
+  try {
+    console.log("🗺️ Fetching opportunities with locations...");
+
+    // Query opportunity collections (excluding scholarships and resources)
+    const studySpotsQuery = query(
+      collection(db, "studySpots"),
+      where("status", "==", "active")
+    );
+    const workshopsQuery = query(
+      collection(db, "workshops"),
+      where("status", "==", "active")
+    );
+    const competitionsQuery = query(
+      collection(db, "competitions"),
+      where("status", "==", "active")
+    );
+
+    // Fetch all in parallel
+    const [studySpotsSnapshot, workshopsSnapshot, competitionsSnapshot] =
+      await Promise.all([
+        getDocs(studySpotsQuery),
+        getDocs(workshopsQuery),
+        getDocs(competitionsQuery),
+      ]);
+
+    const opportunitiesList = [];
+    const organizationIds = new Set();
+
+    // Collect Study Spots
+    studySpotsSnapshot.forEach((doc) => {
+      const data = doc.data();
+      opportunitiesList.push({
+        id: doc.id,
+        category: "Study Spot",
+        collectionType: "studySpots",
+        ...data,
+      });
+      if (data.organizationId) organizationIds.add(data.organizationId);
+    });
+
+    // Collect Workshops
+    workshopsSnapshot.forEach((doc) => {
+      const data = doc.data();
+      opportunitiesList.push({
+        id: doc.id,
+        category: "Workshop / Seminar",
+        collectionType: "workshops",
+        ...data,
+      });
+      if (data.organizationId) organizationIds.add(data.organizationId);
+    });
+
+    // Collect Competitions/Events
+    competitionsSnapshot.forEach((doc) => {
+      const data = doc.data();
+      opportunitiesList.push({
+        id: doc.id,
+        category: "Competition / Event",
+        collectionType: "competitions",
+        ...data,
+      });
+      if (data.organizationId) organizationIds.add(data.organizationId);
+    });
+
+    // Fetch organization profiles
+    const profilesMap = new Map();
+    if (organizationIds.size > 0) {
+      const profilePromises = Array.from(organizationIds).map(async (orgId) => {
+        try {
+          const profileSnap = await getDoc(doc(db, "profiles", orgId));
+          return [orgId, profileSnap.exists() ? profileSnap.data() : null];
+        } catch (error) {
+          console.error(`Error fetching profile for ${orgId}:`, error);
+          return [orgId, null];
+        }
+      });
+      const profileEntries = await Promise.all(profilePromises);
+      profileEntries.forEach(([orgId, profile]) => {
+        if (profile) profilesMap.set(orgId, profile);
+      });
+    }
+
+    // Filter opportunities with location data and normalize the structure
+    const opportunitiesWithLocations = opportunitiesList
+      .filter(
+        (opp) => opp.location && opp.location.latitude && opp.location.longitude
+      )
+      .map((opp) => {
+        const orgProfile = profilesMap.get(opp.organizationId);
+
+        return {
+          id: opp.id,
+          title:
+            opp.title || opp.studySpotName || opp.eventName || "Opportunity",
+          category: opp.category,
+          collectionType: opp.collectionType,
+          location: opp.location,
+          address:
+            opp.address || opp.studySpotLocation || opp.location_text || "",
+          description: opp.description || opp.studySpotDetails || "",
+          // Study Spot specific
+          availability: opp.availability || "",
+          availabilityHours: opp.availabilityHours || "",
+          // Event/Workshop specific
+          startDate: opp.startDate || opp.workshopStarts || "",
+          endDate: opp.endDate || opp.workshopEnds || "",
+          // Organization info
+          organizationId: opp.organizationId,
+          organizationName: orgProfile?.name || "Organization",
+          organizationVerified: orgProfile?.verificationStatus === "verified",
+        };
+      });
+
+    console.log(
+      `✅ Found ${opportunitiesWithLocations.length} total opportunities with locations`
+    );
+    console.log(
+      `   📚 Study Spots: ${
+        opportunitiesWithLocations.filter((o) => o.category === "Study Spot")
+          .length
+      }`
+    );
+    console.log(
+      `   🎓 Workshops: ${
+        opportunitiesWithLocations.filter(
+          (o) => o.category === "Workshop / Seminar"
+        ).length
+      }`
+    );
+    console.log(
+      `   🏆 Events: ${
+        opportunitiesWithLocations.filter(
+          (o) => o.category === "Competition / Event"
+        ).length
+      }`
+    );
+
+    return opportunitiesWithLocations;
+  } catch (error) {
+    console.error("Error fetching opportunities with locations:", error);
+    throw error;
+  }
+};
