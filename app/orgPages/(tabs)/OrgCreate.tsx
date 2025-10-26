@@ -156,6 +156,17 @@ const OrgCreate = () => {
   const [showEventMapModal, setShowEventMapModal] = useState(false);
 
   // Workshop/Seminar specific fields
+  const [isInPersonWorkshop, setIsInPersonWorkshop] = useState(false);
+  const [workshopLocation, setWorkshopLocation] = useState<Location.LocationObject | null>(null);
+  const [workshopMapRegion, setWorkshopMapRegion] = useState({
+    latitude: 37.78825,
+    longitude: -122.4324,
+    latitudeDelta: 0.0922,
+    longitudeDelta: 0.0421,
+  });
+  const [showWorkshopMapModal, setShowWorkshopMapModal] = useState(false);
+
+  // Workshop/Seminar specific fields
   const [workshopStarts, setWorkshopStarts] = useState("");
   const [workshopEnds, setWorkshopEnds] = useState("");
   const [workshopStartsDate, setWorkshopStartsDate] = useState(new Date());
@@ -367,6 +378,56 @@ const OrgCreate = () => {
       );
       setShowMapModal(true);
     }
+  };
+
+  const getWorkshopCurrentLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission denied",
+          "Location permission is required to use this feature"
+        );
+        return;
+      }
+
+      const currentLocation = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      setWorkshopLocation(currentLocation);
+      setWorkshopMapRegion({
+        latitude: currentLocation.coords.latitude,
+        longitude: currentLocation.coords.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      });
+      setShowWorkshopMapModal(true);
+    } catch (error) {
+      console.log("Workshop location error:", error);
+      Alert.alert(
+        "Error",
+        "Failed to get current location. You can still select a location manually on the map."
+      );
+      setShowWorkshopMapModal(true);
+    }
+  };
+
+  const handleWorkshopMapPress = (event: any) => {
+    const { latitude, longitude } = event.nativeEvent.coordinate;
+    const newLocation = {
+      coords: {
+        latitude,
+        longitude,
+        altitude: null,
+        accuracy: null,
+        altitudeAccuracy: null,
+        heading: null,
+        speed: null,
+      },
+      timestamp: Date.now(),
+    };
+    setWorkshopLocation(newLocation);
   };
 
   const getEventCurrentLocation = async () => {
@@ -683,6 +744,12 @@ const OrgCreate = () => {
       return;
     }
 
+    // Validate in-person workshop location
+    if (category === "Workshop / Seminar" && isInPersonWorkshop && !workshopLocation) {
+      setErrorMessage("Please select a location for the in-person workshop");
+      return;
+    }
+
     const requiresLink = new Set([
       "Scholarship / Grant",
       "Competition / Event",
@@ -741,20 +808,22 @@ const OrgCreate = () => {
         };
       } else if (category === "Workshop / Seminar") {
         // Workshop specific fields
-        if (location) {
-          opportunityData = {
-            ...opportunityData,
-            workshopStarts: workshopStarts,
-            workshopEnds: workshopEnds,
-            repeats,
-            ...(repeats && { selectedDays }),
+        opportunityData = {
+          ...opportunityData,
+          workshopStarts: workshopStarts,
+          workshopEnds: workshopEnds,
+          repeats,
+          ...(repeats && { selectedDays }),
+          // Workshop event type and location
+          isInPersonWorkshop,
+          ...(isInPersonWorkshop && workshopLocation && {
             location: {
-              latitude: location.coords.latitude,
-              longitude: location.coords.longitude,
-              timestamp: location.timestamp,
+              latitude: workshopLocation.coords.latitude,
+              longitude: workshopLocation.coords.longitude,
+              timestamp: workshopLocation.timestamp,
             },
-          };
-        }
+          }),
+        };
       } else if (category === "Study Spot") {
         // Study Spot specific fields
         if (location) {
@@ -1114,6 +1183,74 @@ const OrgCreate = () => {
               </>
             )}
 
+            {/* Workshop/Seminar Event Type - Show for Workshop / Seminar category */}
+            {category === "Workshop / Seminar" && (
+              <>
+                <Text className="text-sm text-black font-semibold mb-1">
+                  Workshop Type
+                </Text>
+                <View className="flex-row items-center mb-3">
+                  <TouchableOpacity
+                    className={`flex-row items-center px-3 py-2 rounded-lg mr-3 ${
+                      !isInPersonWorkshop ? "bg-blue-100 border-2 border-blue-300" : "bg-gray-100 border-2 border-gray-300"
+                    }`}
+                    onPress={() => setIsInPersonWorkshop(false)}
+                  >
+                    <Text className={`text-lg mr-2 ${!isInPersonWorkshop ? "text-blue-600" : "text-gray-500"}`}>
+                      🌐
+                    </Text>
+                    <Text className={`font-karla ${!isInPersonWorkshop ? "text-blue-700 font-semibold" : "text-gray-600"}`}>
+                      Online
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    className={`flex-row items-center px-3 py-2 rounded-lg ${
+                      isInPersonWorkshop ? "bg-green-100 border-2 border-green-300" : "bg-gray-100 border-2 border-gray-300"
+                    }`}
+                    onPress={() => setIsInPersonWorkshop(true)}
+                  >
+                    <Text className={`text-lg mr-2 ${isInPersonWorkshop ? "text-green-600" : "text-gray-500"}`}>
+                      🏢
+                    </Text>
+                    <Text className={`font-karla ${isInPersonWorkshop ? "text-green-700 font-semibold" : "text-gray-600"}`}>
+                      In-Person
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Location Picker - Only show if in-person workshop is selected */}
+                {isInPersonWorkshop && (
+                  <>
+                    <Text className="text-sm text-black font-semibold mb-1">
+                      Workshop Location *
+                    </Text>
+                    <TouchableOpacity
+                      className={`rounded-xl px-3 h-11 justify-center border mb-3 ${
+                        workshopLocation
+                          ? "bg-green-50 border-green-300"
+                          : "bg-white border-gray-200"
+                      }`}
+                      onPress={getWorkshopCurrentLocation}
+                    >
+                      <View className="flex-row items-center">
+                        <Text className="text-2xl mr-3">
+                          {workshopLocation ? "✅" : "📍"}
+                        </Text>
+                        <Text
+                          className={`text-base flex-1 ${workshopLocation ? "text-green-800" : "text-black"}`}
+                        >
+                          {workshopLocation
+                            ? `Location selected: ${workshopLocation.coords.latitude.toFixed(4)}, ${workshopLocation.coords.longitude.toFixed(4)}`
+                            : "Tap to select workshop location"}
+                        </Text>
+                        <Text className="text-lg text-gray-400">→</Text>
+                      </View>
+                    </TouchableOpacity>
+                  </>
+                )}
+              </>
+            )}
+
             {/* Workshop/Seminar Schedule - Show for Workshop / Seminar category */}
             {category === "Workshop / Seminar" && (
               <>
@@ -1380,9 +1517,8 @@ const OrgCreate = () => {
               </>
             )}
 
-            {/* Location Picker - Show for Study Spot and Workshop / Seminar categories */}
-            {(category === "Study Spot" ||
-              category === "Workshop / Seminar") && (
+            {/* Location Picker - Show for Study Spot only */}
+            {category === "Study Spot" && (
               <>
                 <Text className="text-sm text-black font-semibold mb-1">
                   Location *
@@ -1948,6 +2084,70 @@ const OrgCreate = () => {
                   <Text className="text-xs text-gray-500 text-center">
                     {eventLocation
                       ? `Current selection: ${eventLocation.coords.latitude.toFixed(6)}, ${eventLocation.coords.longitude.toFixed(6)}`
+                      : "No location selected yet"}
+                  </Text>
+                </View>
+              </View>
+            </Modal>
+          )}
+
+          {/* Workshop Location Selection Modal - Only for Workshop/Seminar */}
+          {category === "Workshop / Seminar" && isInPersonWorkshop && (
+            <Modal
+              visible={showWorkshopMapModal}
+              transparent={false}
+              animationType="slide"
+              onRequestClose={() => setShowWorkshopMapModal(false)}
+            >
+              <View className="flex-1 bg-white">
+                {/* Header */}
+                <View className="flex-row items-center justify-between p-4 bg-[#a084e8]">
+                  <TouchableOpacity
+                    onPress={() => setShowWorkshopMapModal(false)}
+                    className="bg-white rounded-full p-2"
+                  >
+                    <Text className="text-lg text-[#a084e8] font-bold">←</Text>
+                  </TouchableOpacity>
+                  <Text className="text-white text-lg font-bold">
+                    Select Workshop Location
+                  </Text>
+                  <TouchableOpacity
+                    className="bg-white rounded-full p-2"
+                    onPress={() => setShowWorkshopMapModal(false)}
+                  >
+                    <Text className="text-lg text-[#a084e8] font-bold">✓</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Map */}
+                <View className="flex-1">
+                  <MapView
+                    style={{ flex: 1 }}
+                    region={workshopMapRegion}
+                    onPress={handleWorkshopMapPress}
+                  >
+                    {workshopLocation && (
+                      <Marker
+                        coordinate={{
+                          latitude: workshopLocation.coords.latitude,
+                          longitude: workshopLocation.coords.longitude,
+                        }}
+                        title="Workshop Location"
+                        description="Selected location for workshop"
+                        pinColor="#a084e8"
+                      />
+                    )}
+                  </MapView>
+                </View>
+
+                {/* Instructions */}
+                <View className="p-4 bg-gray-50">
+                  <Text className="text-sm text-gray-600 text-center mb-2">
+                    Tap anywhere on the map to place a pin for your workshop location
+                  </Text>
+                  <Text className="text-xs text-gray-500 text-center">
+                    {workshopLocation
+                      ? `Current selection: ${workshopLocation.coords.latitude.toFixed(6)}, ${workshopLocation.coords.longitude.toFixed(6)}`
                       : "No location selected yet"}
                   </Text>
                 </View>
