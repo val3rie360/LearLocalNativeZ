@@ -1,0 +1,145 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user owns the document
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Profiles collection
+    match /profiles/{userId} {
+      // Users can read their own profile
+      allow read: if isAuthenticated();
+      // Users can only write to their own profile
+      allow write: if isOwner(userId);
+    }
+    
+    // Main opportunities collection (denormalized previews)
+    match /opportunities/{opportunityId} {
+      // Anyone can read opportunities
+      allow read: if true;
+      // Only authenticated users can create opportunities
+      allow create: if isAuthenticated() && 
+                      request.resource.data.organizationId == request.auth.uid;
+      // Only the owner can update their opportunities
+      allow update: if isAuthenticated() && 
+                      resource.data.organizationId == request.auth.uid;
+      // Only the owner can delete their opportunities
+      allow delete: if isAuthenticated() && 
+                      resource.data.organizationId == request.auth.uid;
+    }
+    
+    // Scholarships collection
+    match /scholarships/{scholarshipId} {
+      // Anyone can read scholarships
+      allow read: if true;
+      // Only authenticated users can create scholarships
+      allow create: if isAuthenticated() && 
+                      request.resource.data.organizationId == request.auth.uid;
+      // Only the owner can update their scholarships
+      allow update: if isAuthenticated() && 
+                      resource.data.organizationId == request.auth.uid;
+      // Only the owner can delete their scholarships
+      allow delete: if isAuthenticated() && 
+                      resource.data.organizationId == request.auth.uid;
+    }
+    
+    // Competitions collection
+    match /competitions/{competitionId} {
+      // Anyone can read competitions
+      allow read: if true;
+      // Only authenticated users can create competitions
+      allow create: if isAuthenticated() && 
+                      request.resource.data.organizationId == request.auth.uid;
+      // Only the owner can update their competitions
+      allow update: if isAuthenticated() && 
+                      resource.data.organizationId == request.auth.uid;
+      // Only the owner can delete their competitions
+      allow delete: if isAuthenticated() && 
+                      resource.data.organizationId == request.auth.uid;
+    }
+    
+    // Workshops collection
+    match /workshops/{workshopId} {
+      // Anyone can read workshops
+      allow read: if true;
+      // Only authenticated users can create workshops
+      allow create: if isAuthenticated() && 
+                      request.resource.data.organizationId == request.auth.uid;
+      // Only the owner can update their workshops
+      allow update: if isAuthenticated() && 
+                      resource.data.organizationId == request.auth.uid;
+      // Only the owner can delete their workshops
+      allow delete: if isAuthenticated() && 
+                      resource.data.organizationId == request.auth.uid;
+    }
+    
+    // Study Spots collection
+    match /studySpots/{studySpotId} {
+      // Anyone can read study spots
+      allow read: if true;
+      // Only authenticated users can create study spots
+      allow create: if isAuthenticated() && 
+                      request.resource.data.organizationId == request.auth.uid;
+      // Only the owner can update their study spots
+      allow update: if isAuthenticated() && 
+                      resource.data.organizationId == request.auth.uid;
+      // Only the owner can delete their study spots
+      allow delete: if isAuthenticated() && 
+                      resource.data.organizationId == request.auth.uid;
+    }
+    
+    // Resources collection
+    match /resources/{resourceId} {
+      // Anyone can read resources
+      allow read: if true;
+      // Only authenticated users can create resources
+      allow create: if isAuthenticated() && 
+                      request.resource.data.organizationId == request.auth.uid;
+      // Only the owner can update their resources
+      allow update: if isAuthenticated() && 
+                      resource.data.organizationId == request.auth.uid;
+      // Only the owner can delete their resources
+      allow delete: if isAuthenticated() && 
+                      resource.data.organizationId == request.auth.uid;
+    }
+    
+    // Community posts
+    match /posts/{postId} {
+      allow read: if true;
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+    
+    // Uploads collection (Cloudinary file metadata)
+    match /uploads/{uploadId} {
+      // Anyone can read uploads (public resources for students)
+      allow read: if true;
+      
+      // Only authenticated users can create uploads
+      allow create: if isAuthenticated() 
+                    && request.resource.data.organizationId == request.auth.uid;
+      
+      // Only owner can update their uploads
+      allow update: if isAuthenticated() 
+                    && resource.data.organizationId == request.auth.uid;
+      
+      // Only owner can delete their uploads
+      allow delete: if isAuthenticated() 
+                    && resource.data.organizationId == request.auth.uid;
+    }
+    
+    // Default deny all other paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+

@@ -1,0 +1,72 @@
+{
+  "expo": {
+    "name": "LearnLocal",
+    "slug": "learn-local-native",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/learl.png",
+    "scheme": "learnlocalnative",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/learl.png",
+        "backgroundColor": "#4B2ACF"
+      },
+      "edgeToEdgeEnabled": true,
+      "statusBarColor": "#3D0DBD",
+      "navigationBarColor": "#3D0DBD",
+      "statusBarStyle": "light",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ],
+      "package": "com.haseeb241.learnlocalnative",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyBanWwBpR0CcSPaVlltG6f3L8G9DlwgLoE"
+        }
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/learl.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/learl.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#3D0DBD"
+        }
+      ],
+      "expo-asset",
+      "expo-image-picker",
+      [
+        "expo-location",
+        {
+          "googleMaps": {
+            "apiKey": "AIzaSyBanWwBpR0CcSPaVlltG6f3L8G9DlwgLoE"
+          }
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+       "projectId": "86229baf-5e34-43d4-96ba-fc6b44b3be51"
+      }
+    }
+  }
+}
