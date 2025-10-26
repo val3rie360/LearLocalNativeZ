@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "LearnLocal",
-    "slug": "learn-local-native",
+    "slug": "learn-local-native-new",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/learl.png",
@@ -65,7 +65,7 @@
     "extra": {
       "router": {},
       "eas": {
-       "projectId": "86229baf-5e34-43d4-96ba-fc6b44b3be51"
+        "projectId": "3f089b9f-2236-446c-8ec6-dc92bf40a414"
       }
     }
   }

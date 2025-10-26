@@ -5,16 +5,31 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME": "dgxcslmvp",
+        "EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET": "learn_local_uploads",
+        "EXPO_PUBLIC_CLOUDINARY_AVATAR_UPLOAD_PRESET": "learn_local_avatars"
+      }
     },
     "preview": {
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME": "dgxcslmvp",
+        "EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET": "learn_local_uploads",
+        "EXPO_PUBLIC_CLOUDINARY_AVATAR_UPLOAD_PRESET": "learn_local_avatars"
       }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME": "dgxcslmvp",
+        "EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET": "learn_local_uploads",
+        "EXPO_PUBLIC_CLOUDINARY_AVATAR_UPLOAD_PRESET": "learn_local_avatars"
+      }
     }
   },
   "submit": {

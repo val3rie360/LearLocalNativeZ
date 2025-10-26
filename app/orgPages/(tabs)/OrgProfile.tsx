@@ -1,21 +1,27 @@
 import { FontAwesome, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
+import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import { doc, getDoc } from "firebase/firestore";
 import React, { useCallback, useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
+  Modal,
   RefreshControl,
   ScrollView,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import MapView, { Marker } from "../../../components/PlatformMap";
 import { useAuth } from "../../../contexts/AuthContext";
 import { db } from "../../../firebaseconfig";
 import { logOut } from "../../../services/authServices";
+import { updateOrganizationLocation } from "../../../services/firestoreService";
 
 interface ProfileData {
   name?: string;
@@ -27,6 +33,11 @@ interface ProfileData {
   verificationFileUrl?: string;
   verificationStatus?: "pending" | "verified" | "rejected";
   photoURL?: string;
+  location?: {
+    latitude: number;
+    longitude: number;
+  };
+  address?: string;
 }
 
 const OrgProfile: React.FC = () => {
@@ -38,6 +49,13 @@ const OrgProfile: React.FC = () => {
     (profileData ?? null) as ProfileData | null
   );
   const [avatarError, setAvatarError] = useState(false);
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
+  const [addressInput, setAddressInput] = useState("");
+  const [savingLocation, setSavingLocation] = useState(false);
 
   useEffect(() => {
     setProfileInfo((profileData ?? null) as ProfileData | null);
@@ -59,6 +77,51 @@ const OrgProfile: React.FC = () => {
       setRefreshing(false);
     }
   }, [user?.uid]);
+
+  const handleGetCurrentLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permission Denied", "Location permission is required to use this feature.");
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({});
+      setSelectedLocation({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      });
+    } catch (error) {
+      console.error("Error getting location:", error);
+      Alert.alert("Error", "Failed to get current location.");
+    }
+  };
+
+  const handleSaveLocation = async () => {
+    if (!selectedLocation || !user?.uid) {
+      Alert.alert("Error", "Please select a location first.");
+      return;
+    }
+
+    try {
+      setSavingLocation(true);
+      await updateOrganizationLocation(user.uid, selectedLocation, addressInput.trim());
+      Alert.alert("Success", "Location updated successfully!");
+      setShowLocationModal(false);
+      await handleRefresh();
+    } catch (error) {
+      console.error("Error saving location:", error);
+      Alert.alert("Error", "Failed to save location. Please try again.");
+    } finally {
+      setSavingLocation(false);
+    }
+  };
+
+  const handleOpenLocationPicker = () => {
+    setSelectedLocation(profileInfo?.location || null);
+    setAddressInput(profileInfo?.address || "");
+    setShowLocationModal(true);
+  };
 
   const handleLogout = async () => {
     Alert.alert("Log Out", "Are you sure you want to log out?", [
@@ -230,6 +293,36 @@ const OrgProfile: React.FC = () => {
             {/* Menu Section */}
             <View className="w-[85%]">
               <TouchableOpacity
+                className="flex-row items-center py-1.5 justify-between mb-2"
+                onPress={handleOpenLocationPicker}
+              >
+                <View className="flex-row items-center">
+                  <Ionicons
+                    name="location"
+                    size={22}
+                    color="#4B1EB4"
+                    style={{
+                      backgroundColor: "#E5E0FF",
+                      borderRadius: 10,
+                      padding: 6,
+                      marginRight: 12,
+                    }}
+                  />
+                  <View>
+                    <Text className="text-[16px] font-karla-bold text-white">
+                      Set Location
+                    </Text>
+                    {profileInfo?.location && (
+                      <Text className="text-[12px] font-karla text-gray-300">
+                        📍 Location set
+                      </Text>
+                    )}
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={22} color="#ffffffff" />
+              </TouchableOpacity>
+              
+              <TouchableOpacity
                 className="flex-row items-center py-1.5 justify-between"
                 onPress={() => router.push("../../settings")}
               >
@@ -276,6 +369,112 @@ const OrgProfile: React.FC = () => {
             </View>
           </View>
         </ScrollView>
+
+        {/* Location Picker Modal */}
+        <Modal
+          visible={showLocationModal}
+          animationType="slide"
+          onRequestClose={() => setShowLocationModal(false)}
+        >
+          <SafeAreaView className="flex-1 bg-white">
+            {/* Header */}
+            <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200">
+              <TouchableOpacity onPress={() => setShowLocationModal(false)}>
+                <Ionicons name="close" size={28} color="#18181B" />
+              </TouchableOpacity>
+              <Text className="text-[18px] font-karla-bold text-[#18181B]">
+                Set Organization Location
+              </Text>
+              <TouchableOpacity
+                onPress={handleSaveLocation}
+                disabled={savingLocation || !selectedLocation}
+              >
+                {savingLocation ? (
+                  <ActivityIndicator size="small" color="#4B1EB4" />
+                ) : (
+                  <Text
+                    className={`text-[16px] font-karla-bold ${
+                      selectedLocation ? "text-[#4B1EB4]" : "text-gray-400"
+                    }`}
+                  >
+                    Save
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            {/* Address Input */}
+            <View className="px-4 py-3 border-b border-gray-200">
+              <Text className="text-[14px] font-karla-bold text-gray-700 mb-2">
+                Organization Address
+              </Text>
+              <TextInput
+                className="bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 font-karla text-[15px]"
+                placeholder="Enter your organization's address..."
+                value={addressInput}
+                onChangeText={setAddressInput}
+                multiline
+              />
+            </View>
+
+            {/* Map */}
+            <View className="flex-1">
+              <MapView
+                style={{ flex: 1 }}
+                initialRegion={{
+                  latitude: selectedLocation?.latitude || 9.3077,
+                  longitude: selectedLocation?.longitude || 123.3054,
+                  latitudeDelta: 0.01,
+                  longitudeDelta: 0.01,
+                }}
+                onPress={(e) => {
+                  setSelectedLocation({
+                    latitude: e.nativeEvent.coordinate.latitude,
+                    longitude: e.nativeEvent.coordinate.longitude,
+                  });
+                }}
+              >
+                {selectedLocation && (
+                  <Marker
+                    coordinate={selectedLocation}
+                    title={profileInfo?.name || "Your Organization"}
+                    description="Tap on map to move pin"
+                  />
+                )}
+              </MapView>
+
+              {/* Current Location Button */}
+              <TouchableOpacity
+                className="absolute bottom-4 right-4 bg-white rounded-full p-4 shadow-lg"
+                onPress={handleGetCurrentLocation}
+              >
+                <Ionicons name="locate" size={24} color="#4B1EB4" />
+              </TouchableOpacity>
+
+              {/* Location Info */}
+              {selectedLocation && (
+                <View className="absolute bottom-4 left-4 bg-white rounded-xl shadow-lg p-3">
+                  <Text className="font-karla-bold text-[13px] text-gray-700">
+                    Selected Location
+                  </Text>
+                  <Text className="font-karla text-[12px] text-gray-600">
+                    Lat: {selectedLocation.latitude.toFixed(6)}
+                  </Text>
+                  <Text className="font-karla text-[12px] text-gray-600">
+                    Lng: {selectedLocation.longitude.toFixed(6)}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* Instructions */}
+            <View className="px-4 py-3 bg-[#E5E0FF]">
+              <Text className="text-[13px] font-karla text-[#4B1EB4] text-center">
+                Tap anywhere on the map to set your organization's location
+              </Text>
+            </View>
+          </SafeAreaView>
+        </Modal>
       </LinearGradient>
     </SafeAreaView>
   );

@@ -1446,3 +1446,76 @@ export const syncTrackedOpportunityDeadlines = async (userId) => {
     return 0;
   }
 };
+
+/**
+ * Get all verified organizations with location data for map display
+ * @returns {Promise<Array>} - Array of organizations with location info
+ */
+export const getOrganizationsWithLocations = async () => {
+  try {
+    console.log("📍 Fetching organizations with locations...");
+    
+    // Get all verified organizations
+    const profilesQuery = query(
+      collection(db, "profiles"),
+      where("role", "==", "organization"),
+      where("verificationStatus", "==", "verified")
+    );
+    
+    const profilesSnapshot = await getDocs(profilesQuery);
+    const organizationsWithLocations = [];
+    
+    for (const profileDoc of profilesSnapshot.docs) {
+      const profileData = profileDoc.data();
+      
+      // Check if organization has location data
+      if (profileData.location && 
+          profileData.location.latitude && 
+          profileData.location.longitude) {
+        organizationsWithLocations.push({
+          id: profileDoc.id,
+          name: profileData.name || "Organization",
+          location: profileData.location,
+          email: profileData.email,
+          photoURL: profileData.photoURL,
+          address: profileData.address || "",
+          description: profileData.description || "",
+        });
+      }
+    }
+    
+    console.log(`✅ Found ${organizationsWithLocations.length} organizations with locations`);
+    return organizationsWithLocations;
+  } catch (error) {
+    console.error("Error fetching organizations with locations:", error);
+    throw error;
+  }
+};
+
+/**
+ * Update organization profile with location coordinates
+ * @param {string} userId - Organization user ID
+ * @param {Object} location - Location object with latitude and longitude
+ * @param {string} address - Human-readable address
+ * @returns {Promise<void>}
+ */
+export const updateOrganizationLocation = async (userId, location, address = "") => {
+  try {
+    console.log("📍 Updating organization location...");
+    
+    const profileRef = doc(db, "profiles", userId);
+    await updateDoc(profileRef, {
+      location: {
+        latitude: location.latitude,
+        longitude: location.longitude,
+      },
+      address: address,
+      updatedAt: serverTimestamp(),
+    });
+    
+    console.log("✅ Organization location updated successfully");
+  } catch (error) {
+    console.error("Error updating organization location:", error);
+    throw error;
+  }
+};
