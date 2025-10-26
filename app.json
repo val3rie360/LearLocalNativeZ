@@ -28,7 +28,7 @@
       "package": "com.haseeb241.learnlocalnative",
       "config": {
         "googleMaps": {
-          "apiKey": "AIzaSyBanWwBpR0CcSPaVlltG6f3L8G9DlwgLoE"
+          "apiKey": "AIzaSyBOnKo1kwJz0eVMUotPndQGXR5QjWcyIX0"
         }
       }
     },
@@ -54,7 +54,7 @@
         "expo-location",
         {
           "googleMaps": {
-            "apiKey": "AIzaSyBanWwBpR0CcSPaVlltG6f3L8G9DlwgLoE"
+            "apiKey": "AIzaSyBOnKo1kwJz0eVMUotPndQGXR5QjWcyIX0"
           }
         }
       ]
