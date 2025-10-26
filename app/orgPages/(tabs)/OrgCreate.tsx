@@ -1944,7 +1944,7 @@ const OrgCreate = () => {
             >
               <View className="flex-1 bg-white">
                 {/* Header */}
-                <View className="flex-row items-center justify-between p-4 bg-[#a084e8]">
+                <View className="flex-row items-center justify-between pt-8 pb-4 px-4 bg-[#a084e8]">
                   <TouchableOpacity
                     onPress={() => setShowMapModal(false)}
                     className="bg-white rounded-full p-2"
@@ -2036,7 +2036,7 @@ const OrgCreate = () => {
             >
               <View className="flex-1 bg-white">
                 {/* Header */}
-                <View className="flex-row items-center justify-between p-4 bg-[#a084e8]">
+                <View className="flex-row items-center justify-between pt-8 pb-4 px-4 bg-[#a084e8]">
                   <TouchableOpacity
                     onPress={() => setShowEventMapModal(false)}
                     className="bg-white rounded-full p-2"
@@ -2124,7 +2124,7 @@ const OrgCreate = () => {
             >
               <View className="flex-1 bg-white">
                 {/* Header */}
-                <View className="flex-row items-center justify-between p-4 bg-[#a084e8]">
+                <View className="flex-row items-center justify-between pt-8 pb-4 px-4 bg-[#a084e8]">
                   <TouchableOpacity
                     onPress={() => setShowWorkshopMapModal(false)}
                     className="bg-white rounded-full p-2"
