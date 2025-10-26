@@ -1954,37 +1954,7 @@ const OrgCreate = () => {
                   <Text className="text-lg font-bold text-white">
                     Select Location
                   </Text>
-                  <TouchableOpacity
-                    onPress={confirmLocation}
-                    className="bg-white rounded-full px-4 py-2"
-                    disabled={!location}
-                  >
-                    <Text
-                      className={`text-sm font-bold ${location ? "text-[#a084e8]" : "text-gray-400"}`}
-                    >
-                      Confirm
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* Action Buttons */}
-                <View className="flex-row space-x-3 p-4 bg-gray-50">
-                  <TouchableOpacity
-                    className="flex-1 bg-[#a084e8] rounded-xl py-3"
-                    onPress={getCurrentLocation}
-                  >
-                    <Text className="text-white text-center font-bold">
-                      📍 Use Current Location
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    className="flex-1 bg-gray-200 rounded-xl py-3"
-                    onPress={() => setShowMapModal(false)}
-                  >
-                    <Text className="text-gray-600 text-center font-bold">
-                      Cancel
-                    </Text>
-                  </TouchableOpacity>
+                  <View className="w-10" />
                 </View>
 
                 {/* Map */}
@@ -2023,6 +1993,35 @@ const OrgCreate = () => {
                       : "No location selected yet"}
                   </Text>
                 </View>
+
+                {/* Confirmation Button */}
+                <View className="p-4 bg-white border-t border-gray-200">
+                  <View className="flex-row space-x-3 mb-3">
+                    <TouchableOpacity
+                      className="flex-1 bg-blue-500 rounded-xl py-3"
+                      onPress={getCurrentLocation}
+                    >
+                      <Text className="text-white text-center font-bold">
+                        📍 Use Current Location
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  <TouchableOpacity
+                    className={`rounded-xl py-4 px-6 ${
+                      location 
+                        ? "bg-[#a084e8]" 
+                        : "bg-gray-300"
+                    }`}
+                    onPress={() => setShowMapModal(false)}
+                    disabled={!location}
+                  >
+                    <Text className={`text-center text-lg font-bold ${
+                      location ? "text-white" : "text-gray-500"
+                    }`}>
+                      {location ? "✓ Confirm Location" : "Select a location first"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </Modal>
           )}
@@ -2047,12 +2046,7 @@ const OrgCreate = () => {
                   <Text className="text-white text-lg font-bold">
                     Select Event Location
                   </Text>
-                  <TouchableOpacity
-                    className="bg-white rounded-full p-2"
-                    onPress={() => setShowEventMapModal(false)}
-                  >
-                    <Text className="text-lg text-[#a084e8] font-bold">✓</Text>
-                  </TouchableOpacity>
+                  <View className="w-10" />
                 </View>
 
                 {/* Map */}
@@ -2087,6 +2081,35 @@ const OrgCreate = () => {
                       : "No location selected yet"}
                   </Text>
                 </View>
+
+                {/* Confirmation Button */}
+                <View className="p-4 bg-white border-t border-gray-200">
+                  <View className="flex-row space-x-3 mb-3">
+                    <TouchableOpacity
+                      className="flex-1 bg-blue-500 rounded-xl py-3"
+                      onPress={getEventCurrentLocation}
+                    >
+                      <Text className="text-white text-center font-bold">
+                        📍 Use Current Location
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  <TouchableOpacity
+                    className={`rounded-xl py-4 px-6 ${
+                      eventLocation 
+                        ? "bg-[#a084e8]" 
+                        : "bg-gray-300"
+                    }`}
+                    onPress={() => setShowEventMapModal(false)}
+                    disabled={!eventLocation}
+                  >
+                    <Text className={`text-center text-lg font-bold ${
+                      eventLocation ? "text-white" : "text-gray-500"
+                    }`}>
+                      {eventLocation ? "✓ Confirm Location" : "Select a location first"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </Modal>
           )}
@@ -2111,12 +2134,7 @@ const OrgCreate = () => {
                   <Text className="text-white text-lg font-bold">
                     Select Workshop Location
                   </Text>
-                  <TouchableOpacity
-                    className="bg-white rounded-full p-2"
-                    onPress={() => setShowWorkshopMapModal(false)}
-                  >
-                    <Text className="text-lg text-[#a084e8] font-bold">✓</Text>
-                  </TouchableOpacity>
+                  <View className="w-10" />
                 </View>
 
                 {/* Map */}
@@ -2150,6 +2168,35 @@ const OrgCreate = () => {
                       ? `Current selection: ${workshopLocation.coords.latitude.toFixed(6)}, ${workshopLocation.coords.longitude.toFixed(6)}`
                       : "No location selected yet"}
                   </Text>
+                </View>
+
+                {/* Confirmation Button */}
+                <View className="p-4 bg-white border-t border-gray-200">
+                  <View className="flex-row space-x-3 mb-3">
+                    <TouchableOpacity
+                      className="flex-1 bg-blue-500 rounded-xl py-3"
+                      onPress={getWorkshopCurrentLocation}
+                    >
+                      <Text className="text-white text-center font-bold">
+                        📍 Use Current Location
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  <TouchableOpacity
+                    className={`rounded-xl py-4 px-6 ${
+                      workshopLocation 
+                        ? "bg-[#a084e8]" 
+                        : "bg-gray-300"
+                    }`}
+                    onPress={() => setShowWorkshopMapModal(false)}
+                    disabled={!workshopLocation}
+                  >
+                    <Text className={`text-center text-lg font-bold ${
+                      workshopLocation ? "text-white" : "text-gray-500"
+                    }`}>
+                      {workshopLocation ? "✓ Confirm Location" : "Select a location first"}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               </View>
             </Modal>
