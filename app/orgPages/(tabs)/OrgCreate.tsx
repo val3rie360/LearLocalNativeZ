@@ -106,8 +106,8 @@ const OrgCreate = () => {
     null
   );
   const [mapRegion, setMapRegion] = useState({
-    latitude: 37.78825,
-    longitude: -122.4324,
+    latitude: 9.3077,
+    longitude: 123.3054,
     latitudeDelta: 0.0922,
     longitudeDelta: 0.0421,
   });
@@ -159,8 +159,8 @@ const OrgCreate = () => {
   const [isInPersonEvent, setIsInPersonEvent] = useState(false);
   const [eventLocation, setEventLocation] = useState<Location.LocationObject | null>(null);
   const [eventMapRegion, setEventMapRegion] = useState({
-    latitude: 37.78825,
-    longitude: -122.4324,
+    latitude: 9.3077,
+    longitude: 123.3054,
     latitudeDelta: 0.0922,
     longitudeDelta: 0.0421,
   });
@@ -170,8 +170,8 @@ const OrgCreate = () => {
   const [isInPersonWorkshop, setIsInPersonWorkshop] = useState(false);
   const [workshopLocation, setWorkshopLocation] = useState<Location.LocationObject | null>(null);
   const [workshopMapRegion, setWorkshopMapRegion] = useState({
-    latitude: 37.78825,
-    longitude: -122.4324,
+    latitude: 9.3077,
+    longitude: 123.3054,
     latitudeDelta: 0.0922,
     longitudeDelta: 0.0421,
   });
@@ -2112,11 +2112,19 @@ const OrgCreate = () => {
                 <View className="flex-1">
                   <MapView
                     style={{ flex: 1 }}
+                    initialRegion={{
+                      latitude: 9.3077,
+                      longitude: 123.3054,
+                      latitudeDelta: 0.0922,
+                      longitudeDelta: 0.0421,
+                    }}
                     region={mapRegion}
                     onPress={handleMapPress}
                     showsUserLocation={true}
                     showsMyLocationButton={true}
                     mapType="standard"
+                    onMapReady={() => console.log('Study Spot Map Ready')}
+                    onError={(error) => console.log('Study Spot Map Error:', error)}
                   >
                     {location && (
                       <Marker
@@ -2243,8 +2251,16 @@ const OrgCreate = () => {
                 <View className="flex-1">
                   <MapView
                     style={{ flex: 1 }}
+                    initialRegion={{
+                      latitude: 9.3077,
+                      longitude: 123.3054,
+                      latitudeDelta: 0.0922,
+                      longitudeDelta: 0.0421,
+                    }}
                     region={eventMapRegion}
                     onPress={handleEventMapPress}
+                    onMapReady={() => console.log('Event Map Ready')}
+                    onError={(error) => console.log('Event Map Error:', error)}
                   >
                     {eventLocation && (
                       <Marker
@@ -2371,8 +2387,16 @@ const OrgCreate = () => {
                 <View className="flex-1">
                   <MapView
                     style={{ flex: 1 }}
+                    initialRegion={{
+                      latitude: 9.3077,
+                      longitude: 123.3054,
+                      latitudeDelta: 0.0922,
+                      longitudeDelta: 0.0421,
+                    }}
                     region={workshopMapRegion}
                     onPress={handleWorkshopMapPress}
+                    onMapReady={() => console.log('Workshop Map Ready')}
+                    onError={(error) => console.log('Workshop Map Error:', error)}
                   >
                     {workshopLocation && (
                       <Marker

@@ -320,6 +320,14 @@ const [showScrollTop, setShowScrollTop] = useState(false);
       console.log(
         `📋 Displaying ${bookmarkedOpportunities.length} saved opportunities`
       );
+      if (bookmarkedOpportunities.length > 0) {
+        console.log("📋 Saved opportunities:", bookmarkedOpportunities.map(op => ({
+          id: op.id,
+          title: op.title,
+          organizationName: getOpportunityOrganizationName(op),
+          specificCollection: op.specificCollection
+        })));
+      }
       return sortOpportunities(bookmarkedOpportunities);
     }
 
@@ -365,6 +373,10 @@ const [showScrollTop, setShowScrollTop] = useState(false);
         console.log(
           "  Bookmarked opportunity IDs:",
           bookmarked.map((b) => b.id)
+        );
+        console.log(
+          "  Bookmarked opportunity titles:",
+          bookmarked.map((b) => b.title)
         );
       }
     } catch (error) {
@@ -485,6 +497,13 @@ const [showScrollTop, setShowScrollTop] = useState(false);
       // Refresh bookmarked opportunities
       console.log(`  Refreshing bookmarked opportunities list...`);
       await fetchBookmarkedOpportunities();
+      
+      // If we're currently viewing saved opportunities, refresh the display
+      if (selectedCategory === "saved") {
+        console.log(`  Refreshing saved view...`);
+        // Force a re-render by updating state
+        setBookmarkedOpportunities(prev => [...prev]);
+      }
     } catch (error) {
       console.error("❌ Error toggling bookmark:", error);
     }
@@ -621,6 +640,11 @@ const [showScrollTop, setShowScrollTop] = useState(false);
                     }
                   } else {
                     setSelectedCategory(c.value);
+                    // If switching to saved category, refresh bookmarked opportunities
+                    if (c.value === "saved") {
+                      console.log("🔄 Switching to saved category, refreshing bookmarks...");
+                      fetchBookmarkedOpportunities();
+                    }
                   }
                 }}
               />

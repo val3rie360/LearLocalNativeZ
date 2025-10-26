@@ -9,7 +9,8 @@
       "env": {
         "EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME": "dgxcslmvp",
         "EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET": "learn_local_uploads",
-        "EXPO_PUBLIC_CLOUDINARY_AVATAR_UPLOAD_PRESET": "learn_local_avatars"
+        "EXPO_PUBLIC_CLOUDINARY_AVATAR_UPLOAD_PRESET": "learn_local_avatars",
+        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyBanWwBpR0CcSPaVlltG6f3L8G9DlwgLoE"
       }
     },
     "preview": {
@@ -20,7 +21,8 @@
       "env": {
         "EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME": "dgxcslmvp",
         "EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET": "learn_local_uploads",
-        "EXPO_PUBLIC_CLOUDINARY_AVATAR_UPLOAD_PRESET": "learn_local_avatars"
+        "EXPO_PUBLIC_CLOUDINARY_AVATAR_UPLOAD_PRESET": "learn_local_avatars",
+        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyBanWwBpR0CcSPaVlltG6f3L8G9DlwgLoE"
       }
     },
     "production": {
@@ -28,7 +30,8 @@
       "env": {
         "EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME": "dgxcslmvp",
         "EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET": "learn_local_uploads",
-        "EXPO_PUBLIC_CLOUDINARY_AVATAR_UPLOAD_PRESET": "learn_local_avatars"
+        "EXPO_PUBLIC_CLOUDINARY_AVATAR_UPLOAD_PRESET": "learn_local_avatars",
+        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyBanWwBpR0CcSPaVlltG6f3L8G9DlwgLoE"
       }
     }
   },

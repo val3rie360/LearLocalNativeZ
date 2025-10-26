@@ -203,7 +203,29 @@ export const getOpportunityDetails = async (
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
-      return { id: docSnap.id, ...docSnap.data() };
+      const opportunity = { id: docSnap.id, ...docSnap.data() };
+      
+      // Enrich with organization information
+      if (opportunity.organizationId) {
+        try {
+          const orgProfileRef = doc(db, "profiles", opportunity.organizationId);
+          const orgProfileSnap = await getDoc(orgProfileRef);
+          
+          if (orgProfileSnap.exists()) {
+            const orgProfile = orgProfileSnap.data();
+            return {
+              ...opportunity,
+              organizationProfile: { id: opportunity.organizationId, ...orgProfile },
+              organizationName: orgProfile?.name || opportunity.organizationName || "Organization",
+              organizationVerified: orgProfile?.verificationStatus === "verified",
+            };
+          }
+        } catch (orgError) {
+          console.error("Error fetching organization profile:", orgError);
+        }
+      }
+      
+      return opportunity;
     } else {
       console.log("No opportunity found with ID:", opportunityId);
       return null;
@@ -649,11 +671,30 @@ export const getBookmarkedOpportunities = async (userId) => {
         console.log(`    ✅ Found opportunity: ${oppData.title}, status: ${oppData.status}`);
         
         if (oppData.status === "active") {
-          return { 
+          const opportunity = { 
             id: oppSnap.id, 
             specificCollection: bookmark.specificCollection,
             ...oppData 
           };
+          
+          // Enrich with organization information
+          if (opportunity.organizationId) {
+            try {
+              const orgProfileRef = doc(db, "profiles", opportunity.organizationId);
+              const orgProfileSnap = await getDoc(orgProfileRef);
+              
+              if (orgProfileSnap.exists()) {
+                const orgProfile = orgProfileSnap.data();
+                opportunity.organizationProfile = { id: opportunity.organizationId, ...orgProfile };
+                opportunity.organizationName = orgProfile?.name || opportunity.organizationName || "Organization";
+                opportunity.organizationVerified = orgProfile?.verificationStatus === "verified";
+              }
+            } catch (orgError) {
+              console.error("Error fetching organization profile for bookmark:", orgError);
+            }
+          }
+          
+          return opportunity;
         }
         
         console.log(`    ⏭️ Skipped (status is not active)`);
