@@ -1622,6 +1622,9 @@ export const getStudySpotsWithLocations = async () => {
           description: studySpot.description || studySpot.studySpotDetails || "",
           availability: studySpot.availability || "",
           availabilityHours: studySpot.availabilityHours || "",
+          openTime: studySpot.openTime || "",
+          closeTime: studySpot.closeTime || "",
+          availabilityType: studySpot.availabilityType || "",
           organizationId: studySpot.organizationId,
           organizationName: orgProfile?.name || "Organization",
           organizationVerified: orgProfile?.verificationStatus === "verified",
@@ -1839,6 +1842,9 @@ export const getAllOpportunitiesWithLocations = async () => {
           // Study Spot specific
           availability: opp.availability || "",
           availabilityHours: opp.availabilityHours || "",
+          openTime: opp.openTime || "",
+          closeTime: opp.closeTime || "",
+          availabilityType: opp.availabilityType || "",
           // Event/Workshop specific
           startDate: opp.startDate || opp.workshopStarts || "",
           endDate: opp.endDate || opp.workshopEnds || "",

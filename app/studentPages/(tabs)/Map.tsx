@@ -335,21 +335,59 @@ const Map = () => {
                       </View>
                     )}
 
-                    {/* Availability - For Study Spots */}
-                    {opp.availability && (
+                    {/* Hours/Availability - For all location types */}
+                    {((opp as any).availability || (opp as any).availabilityHours || (opp as any).openTime || (opp as any).closeTime || (opp as any).workshopStarts || (opp as any).workshopEnds || (opp as any).startDate || (opp as any).endDate) && (
                       <View className="rounded-xl p-3 mb-3" style={{ backgroundColor: style.bg }}>
                         <View className="flex-row items-center mb-1">
                           <Ionicons name="time" size={18} color={style.color} />
                           <Text className="ml-2 font-karla-bold text-[14px]" style={{ color: style.color }}>
-                            Availability
+                            {opp.category === "Study Spot" ? "Availability" : 
+                             opp.category === "Workshop / Seminar" ? "Workshop Hours" : 
+                             "Event Hours"}
                           </Text>
                         </View>
-                        <Text className="ml-7 text-[#18181B] text-[13px] font-karla">
-                          {opp.availability}
-                        </Text>
-                        {opp.availabilityHours && (
-                          <Text className="ml-7 text-[#18181B] text-[13px] font-karla-bold mt-1">
-                            Hours: {opp.availabilityHours}
+                        
+                        {/* Study Spot Hours */}
+                        {opp.category === "Study Spot" && (
+                          <>
+                            {(opp as any).availability && (
+                              <Text className="ml-7 text-[#18181B] text-[13px] font-karla">
+                                {(opp as any).availability}
+                              </Text>
+                            )}
+                            {((opp as any).openTime && (opp as any).closeTime) && (
+                              <Text className="ml-7 text-[#18181B] text-[13px] font-karla-bold mt-1">
+                                Operating Hours: {(opp as any).openTime} - {(opp as any).closeTime}
+                              </Text>
+                            )}
+                            {(opp as any).availabilityHours && !(opp as any).openTime && (
+                              <Text className="ml-7 text-[#18181B] text-[13px] font-karla-bold mt-1">
+                                Hours: {(opp as any).availabilityHours}
+                              </Text>
+                            )}
+                            {(opp as any).availabilityType && (
+                              <Text className="ml-7 text-[#18181B] text-[13px] font-karla mt-1">
+                                Available: {(opp as any).availabilityType}
+                              </Text>
+                            )}
+                          </>
+                        )}
+                        
+                        {/* Workshop Hours */}
+                        {opp.category === "Workshop / Seminar" && ((opp as any).workshopStarts || (opp as any).workshopEnds) && (
+                          <Text className="ml-7 text-[#18181B] text-[13px] font-karla">
+                            {(opp as any).workshopStarts && (opp as any).workshopEnds ? 
+                              `${(opp as any).workshopStarts} - ${(opp as any).workshopEnds}` : 
+                              (opp as any).workshopStarts || (opp as any).workshopEnds}
+                          </Text>
+                        )}
+                        
+                        {/* Event Hours */}
+                        {opp.category === "Competition / Event" && ((opp as any).startDate || (opp as any).endDate) && (
+                          <Text className="ml-7 text-[#18181B] text-[13px] font-karla">
+                            {(opp as any).startDate && (opp as any).endDate ? 
+                              `${(opp as any).startDate} - ${(opp as any).endDate}` : 
+                              (opp as any).startDate || (opp as any).endDate}
                           </Text>
                         )}
                       </View>
@@ -425,10 +463,7 @@ const Map = () => {
                     <View className="flex-row items-center mb-3">
                       <Ionicons name="business-outline" size={16} color="#6B7280" />
                       <Text className="ml-2 text-[#6B7280] text-[13px] font-karla">
-                        By {opp?.organizationProfile?.name ??
-                          opp?.organizationName ??
-                          opp?.organization?.name ??
-                          "Organization"}
+                        By {getOrganizationName(opp)}
                       </Text>
                     </View>
 
