@@ -860,10 +860,8 @@ const OrgCreate = () => {
       return;
     }
 
-    if (
-      (category === "Study Spot" || category === "Workshop / Seminar") &&
-      !location
-    ) {
+    // Validate location for Study Spot (always required)
+    if (category === "Study Spot" && !location) {
       setErrorMessage(`Please select a location for ${category.toLowerCase()}`);
       return;
     }
@@ -878,7 +876,7 @@ const OrgCreate = () => {
       return;
     }
 
-    // Validate in-person workshop location
+    // Validate in-person workshop location (only required for in-person workshops)
     if (
       category === "Workshop / Seminar" &&
       isInPersonWorkshop &&
