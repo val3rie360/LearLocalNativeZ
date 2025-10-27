@@ -134,8 +134,8 @@ const OpportunityCard: React.FC<OpportunityCardProps> = ({
       </View>
       {/* Info */}
       <InfoRow icon="person-outline" label="Posted by:" value={postedBy} />
-      <InfoRow icon="calendar-outline" label="Deadline:" value={deadline} />
-      <InfoRow icon="cash-outline" label="Amount:" value={formatAmount(amount)} />
+      {deadline && <InfoRow icon="calendar-outline" label="Deadline:" value={deadline} />}
+      {amount && <InfoRow icon="cash-outline" label="Amount:" value={formatAmount(amount)} />}
 
       {/* Description */}
       <Text
