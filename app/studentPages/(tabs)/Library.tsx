@@ -21,6 +21,7 @@ import {
   formatFileSize,
   getAllActiveUploads,
 } from "../../../services/cloudinaryUploadService";
+import OfflineFileManager from "../../../services/offlineFileManager";
 import {
   addBookmark,
   removeBookmark,
@@ -45,8 +46,28 @@ const Library = () => {
   const [bookmarkedIds, setBookmarkedIds] = useState<string[]>([]);
   const [downloadedIds, setDownloadedIds] = useState<string[]>([]);
   const [downloadedResources, setDownloadedResources] = useState<any[]>([]);
+  const [offlineFiles, setOfflineFiles] = useState<any[]>([]);
   const [selectedPdf, setSelectedPdf] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [downloadingFileId, setDownloadingFileId] = useState<string | null>(null);
+
+  // Get organization name with fallbacks
+  const getOrganizationName = (item: any): string =>
+    item?.organizationProfile?.name ??
+    item?.organizationName ??
+    item?.organization?.name ??
+    "Organization";
+
+  // Load offline files
+  const loadOfflineFiles = async () => {
+    try {
+      const files = await OfflineFileManager.getOfflineFiles();
+      setOfflineFiles(files);
+      console.log(`📱 Loaded ${files.length} offline files`);
+    } catch (error) {
+      console.error("Error loading offline files:", error);
+    }
+  };
 
   // Fetch resources
   const fetchResources = async () => {
@@ -64,6 +85,9 @@ const Library = () => {
         setBookmarkedIds(Array.isArray(bookmarksRaw) ? bookmarksRaw : []);
         setDownloadedIds(Array.isArray(downloadsRaw) ? downloadsRaw : []);
       }
+
+      // Load offline files
+      await loadOfflineFiles();
     } catch (error) {
       console.error("Error fetching resources:", error);
       Alert.alert("Error", "Failed to load resources. Please try again.");
@@ -79,15 +103,13 @@ const Library = () => {
 
   // Update downloaded resources list
   useEffect(() => {
-    if (downloadedIds.length > 0) {
-      const downloaded = resources.filter((item) =>
-        downloadedIds.includes(item.id)
-      );
-      setDownloadedResources(downloaded);
-    } else {
-      setDownloadedResources([]);
-    }
-  }, [downloadedIds, resources]);
+    // Only show offline files in downloaded resources section
+    const offlineFileIds = offlineFiles.map(file => file.id);
+    const offlineResources = resources.filter((item) =>
+      offlineFileIds.includes(item.id)
+    );
+    setDownloadedResources(offlineResources);
+  }, [offlineFiles, resources]);
 
   // Filter and search resources
   useEffect(() => {
@@ -117,7 +139,7 @@ const Library = () => {
             (tag: any) =>
               typeof tag === "string" && tag.toLowerCase().includes(searchLower)
           );
-        const orgMatch = resource.organizationName
+        const orgMatch = getOrganizationName(resource)
           ?.toLowerCase()
           ?.includes(searchLower);
 
@@ -161,36 +183,57 @@ const Library = () => {
   // Handle file download & open inside app
   const handleDownload = async (resource: any) => {
     try {
-      // downloadFile returns a URL (cloudinary signed url or similar)
-      const url = await downloadFile(resource.id, user?.uid);
-      if (!url) throw new Error("No download URL returned");
+      setDownloadingFileId(resource.id);
+      
+      // Check if file is already downloaded for offline access
+      const isOffline = await OfflineFileManager.isFileDownloaded(resource.id);
+      
+      if (isOffline) {
+        // File is already downloaded, open it directly
+        console.log("📱 Opening offline file:", resource.title);
+        const offlineFiles = await OfflineFileManager.getOfflineFiles();
+        const offlineFile = offlineFiles.find(f => f.id === resource.id);
+        
+        if (offlineFile) {
+          const filePath = await OfflineFileManager.openFile(offlineFile);
+          setSelectedPdf(filePath);
+          setModalVisible(true);
+        } else {
+          throw new Error("Offline file not found");
+        }
+      } else {
+        // Download file for offline access
+        console.log("🔄 Downloading file for offline access:", resource.title);
+        
+        // Get download URL
+        const url = await downloadFile(resource.id, user?.uid);
+        if (!url) throw new Error("No download URL returned");
 
-      // normalize https
-      let fileUrl = url.startsWith("http://")
-        ? url.replace("http://", "https://")
-        : url;
+        // Download and save for offline access
+        const offlineFile = await OfflineFileManager.downloadFileForOffline(
+          resource,
+          url,
+          user?.uid || ""
+        );
 
-      // use a safe filename
-      const baseName =
-        (resource.fileName || resource.displayName || "download.pdf")
-          .split("/")
-          .pop() || "download.pdf";
-      const dest = FileSystem.documentDirectory + baseName;
-
-      console.log("Downloading resource to:", dest);
-
-      // expo-file-system/legacy provides downloadAsync(path)
-      const downloadResult = await FileSystem.downloadAsync(fileUrl, dest);
-      console.log("Download complete:", downloadResult.uri);
-
-      setSelectedPdf(downloadResult.uri);
-      setModalVisible(true);
-
-      // update local profile state if your backend records downloads
-      if (refreshProfile) await refreshProfile();
+        // Open the downloaded file
+        const filePath = await OfflineFileManager.openFile(offlineFile);
+        setSelectedPdf(filePath);
+        setModalVisible(true);
+        
+        // Refresh offline files list
+        await loadOfflineFiles();
+        
+        Alert.alert(
+          "Download Complete", 
+          `${resource.title} has been downloaded for offline access.`
+        );
+      }
     } catch (error) {
       console.error("Error downloading file:", error);
       Alert.alert("Error", "Failed to download or open file. Try again.");
+    } finally {
+      setDownloadingFileId(null);
     }
   };
 
@@ -292,11 +335,11 @@ const Library = () => {
             <View className="mb-5">
               <View className="flex-row justify-between items-center mb-2.5">
                 <Text className="text-[16px] font-karla-bold text-[#111827]">
-                  Downloaded Resources
+                  Offline Resources
                 </Text>
                 <Text className="text-[13px] text-[#6B7280] font-karla">
                   {downloadedResources.length}{" "}
-                  {downloadedResources.length === 1 ? "file" : "files"}
+                  {downloadedResources.length === 1 ? "file" : "files"} available offline
                 </Text>
               </View>
               <ScrollView
@@ -341,12 +384,17 @@ const Library = () => {
                           className="p-1 bg-white rounded-full"
                           activeOpacity={0.7}
                           style={{ elevation: 2 }}
+                          disabled={downloadingFileId === item.id}
                         >
-                          <Ionicons
-                            name="download-outline"
-                            size={18}
-                            color="#4B1EB4"
-                          />
+                          {downloadingFileId === item.id ? (
+                            <ActivityIndicator size="small" color="#4B1EB4" />
+                          ) : (
+                            <Ionicons
+                              name="checkmark-circle"
+                              size={18}
+                              color="#10B981"
+                            />
+                          )}
                         </TouchableOpacity>
                       </View>
                       <TouchableOpacity
@@ -373,12 +421,12 @@ const Library = () => {
                             >
                               {item.displayName || item.fileName}
                             </Text>
-                            {item.organizationName && (
+                            {getOrganizationName(item) !== "Organization" && (
                               <Text
                                 className="text-[10px] font-karla text-[#9333EA]"
                                 numberOfLines={1}
                               >
-                                by {item.organizationName}
+                                by {getOrganizationName(item)}
                               </Text>
                             )}
                           </View>
@@ -406,15 +454,15 @@ const Library = () => {
                             : null}
                         </View>
                         <View className="flex-row items-center justify-between">
-                          <Text className="text-[11px] font-karla text-[#6B7280]">
-                            {formatDate(item.createdAt)} •{" "}
-                            {formatFileSize(item.fileSize)}
+                          <Text className="text-[11px] font-karla text-[#10B981]">
+                            📱 Available Offline • {formatFileSize(item.fileSize)}
                           </Text>
-                          {item.downloadCount > 0 && (
-                            <Text className="text-[10px] font-karla-bold text-[#6C3EF8]">
-                              {item.downloadCount} downloads
+                          <View className="flex-row items-center">
+                            <Ionicons name="checkmark-circle" size={12} color="#10B981" />
+                            <Text className="text-[10px] font-karla-bold text-[#10B981] ml-1">
+                              Offline
                             </Text>
-                          )}
+                          </View>
                         </View>
                       </TouchableOpacity>
                     </View>
@@ -579,12 +627,12 @@ const Library = () => {
                                 >
                                   {item.displayName || item.fileName}
                                 </Text>
-                                {item.organizationName && (
+                                {getOrganizationName(item) !== "Organization" && (
                                   <Text
                                     className="text-[9px] font-karla text-[#9333EA] mb-1 text-center"
                                     numberOfLines={1}
                                   >
-                                    by {item.organizationName}
+                                    by {getOrganizationName(item)}
                                   </Text>
                                 )}
                                 <View className="flex-row flex-wrap justify-center mb-1">
@@ -710,9 +758,9 @@ const Library = () => {
                             </Text>
 
                             {/* Organization name */}
-                            {item.organizationName && (
+                            {getOrganizationName(item) !== "Organization" && (
                               <Text className="text-[11px] font-karla text-[#9333EA] mb-1">
-                                by {item.organizationName}
+                                by {getOrganizationName(item)}
                               </Text>
                             )}
 

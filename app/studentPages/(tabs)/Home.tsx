@@ -23,7 +23,85 @@ import {
   getBookmarkedOpportunities,
   getUpcomingDeadlines,
   removeOpportunityBookmark,
+  getOpportunityDetails,
 } from "../../../services/firestoreService";
+
+// Import the parseFlexibleDate function (we'll need to export it from firestoreService)
+// For now, let's recreate it here to match the firestore service
+const parseFlexibleDate = (dateValue: any): Date | null => {
+  if (!dateValue) return null;
+  
+  // Already a Date object
+  if (dateValue instanceof Date) {
+    return isNaN(dateValue.getTime()) ? null : dateValue;
+  }
+  
+  // Firestore Timestamp
+  if (dateValue?.toDate && typeof dateValue.toDate === 'function') {
+    try {
+      return dateValue.toDate();
+    } catch (e) {
+      return null;
+    }
+  }
+  
+  // Unix timestamp (number)
+  if (typeof dateValue === 'number') {
+    const date = new Date(dateValue);
+    return isNaN(date.getTime()) ? null : date;
+  }
+  
+  // String parsing
+  if (typeof dateValue === 'string') {
+    // Try standard Date constructor first
+    let date = new Date(dateValue);
+    if (!isNaN(date.getTime())) {
+      return date;
+    }
+    
+    // Handle "Nov 18, 2025" or "November 18, 2025" format
+    const monthNames: { [key: string]: number } = {
+      'jan': 0, 'january': 0,
+      'feb': 1, 'february': 1,
+      'mar': 2, 'march': 2,
+      'apr': 3, 'april': 3,
+      'may': 4,
+      'jun': 5, 'june': 5,
+      'jul': 6, 'july': 6,
+      'aug': 7, 'august': 7,
+      'sep': 8, 'september': 8,
+      'oct': 9, 'october': 9,
+      'nov': 10, 'november': 10,
+      'dec': 11, 'december': 11
+    };
+    
+    // Match "Month DD, YYYY" format
+    const match = dateValue.match(/^(\w+)\s+(\d{1,2}),?\s+(\d{4})$/i);
+    if (match) {
+      const [, monthStr, day, year] = match;
+      const month = monthNames[monthStr.toLowerCase()];
+      
+      if (month !== undefined) {
+        date = new Date(parseInt(year), month, parseInt(day));
+        if (!isNaN(date.getTime())) {
+          return date;
+        }
+      }
+    }
+    
+    // Try ISO format "YYYY-MM-DD"
+    const isoMatch = dateValue.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (isoMatch) {
+      const [, year, month, day] = isoMatch;
+      date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      if (!isNaN(date.getTime())) {
+        return date;
+      }
+    }
+  }
+  
+  return null;
+};
 
 interface ProfileData {
   name?: string;
@@ -162,6 +240,9 @@ const [showScrollTop, setShowScrollTop] = useState(false);
   const [bookmarkedOpportunities, setBookmarkedOpportunities] = useState<any[]>(
     []
   );
+  const [opportunityDeadlines, setOpportunityDeadlines] = useState<Map<string, Date>>(
+    new Map()
+  );
 
   // Get display name with fallbacks
   const getDisplayName = () => {
@@ -195,57 +276,123 @@ const [showScrollTop, setShowScrollTop] = useState(false);
       .toUpperCase();
   };
 
-  const getEarliestDeadline = (opportunity: any): Date => {
-    // Helper to parse milestone date strings reliably
-    const parseMilestoneDate = (dateStr: string) => {
-      // Try parsing with Date constructor
-      let parsed = new Date(dateStr);
-      if (!isNaN(parsed.getTime())) return parsed;
+  // Map category names to collection names (same as in firestoreService)
+  const getCollectionNameForCategory = (category: string): string => {
+    const categoryMap: { [key: string]: string } = {
+      "Scholarship / Grant": "scholarships",
+      "Competition / Event": "competitions", 
+      "Workshop / Seminar": "workshops",
+      Resources: "resources",
+      "Study Spot": "studySpots",
+    };
+    return categoryMap[category] || "opportunities";
+  };
 
-      // Remove commas and extra spaces
-      const cleaned = dateStr.replace(/,/g, "").trim();
-      parsed = new Date(cleaned);
-      if (!isNaN(parsed.getTime())) return parsed;
-
-      // Try parsing only the first three letters of the month
-      const parts = cleaned.split(" ");
-      if (parts.length === 3) {
-        const shortMonth = parts[0].slice(0, 3);
-        parsed = new Date(`${shortMonth} ${parts[1]} ${parts[2]}`);
-        if (!isNaN(parsed.getTime())) return parsed;
+  // Fetch full opportunity data and get earliest deadline
+  const getEarliestDeadlineFromFullData = async (opportunity: any): Promise<Date> => {
+    try {
+      console.log(`🔍 getEarliestDeadlineFromFullData called for "${opportunity.title}"`);
+      console.log(`  - ID: ${opportunity.id}`);
+      console.log(`  - Category: ${opportunity.category}`);
+      console.log(`  - Specific Collection: ${opportunity.specificCollection}`);
+      
+      // Determine the correct collection based on category
+      const category = opportunity.category || opportunity.specificCollection;
+      const targetCollection = getCollectionNameForCategory(category);
+      
+      console.log(`  - Target Collection: ${targetCollection}`);
+      
+      // If we already have dateMilestones in the preview data, use them
+      if (
+        opportunity.dateMilestones &&
+        Array.isArray(opportunity.dateMilestones) &&
+        opportunity.dateMilestones.length > 0
+      ) {
+        console.log(`  ✅ Using dateMilestones from preview data (${opportunity.dateMilestones.length} milestones)`);
+        return getEarliestDeadline(opportunity);
       }
 
-      return null;
-    };
+      // Fetch full opportunity data from the correct category collection
+      if (targetCollection && opportunity.id && targetCollection !== "opportunities") {
+        console.log(`  🔄 Fetching full data from ${targetCollection}...`);
+        const fullData = await getOpportunityDetails(opportunity.id, targetCollection);
+        
+        if (fullData) {
+          console.log(`  ✅ Full data fetched successfully`);
+          console.log(`  - Has dateMilestones: ${!!(fullData as any).dateMilestones}`);
+          console.log(`  - DateMilestones count: ${(fullData as any).dateMilestones?.length || 0}`);
+          
+          if ((fullData as any).dateMilestones && Array.isArray((fullData as any).dateMilestones)) {
+            console.log(`  📅 Found ${(fullData as any).dateMilestones.length} milestones for "${opportunity.title}"`);
+            const deadline = getEarliestDeadline(fullData);
+            console.log(`  📅 Earliest deadline: ${deadline.toLocaleDateString()}`);
+            return deadline;
+          } else {
+            console.log(`  ⚠️ No dateMilestones found in full data`);
+          }
+        } else {
+          console.log(`  ❌ Failed to fetch full data`);
+        }
+      } else {
+        console.log(`  ⚠️ Missing targetCollection, ID, or targetCollection is 'opportunities'`);
+      }
 
-    if (
-      opportunity.dateMilestones &&
-      Array.isArray(opportunity.dateMilestones) &&
-      opportunity.dateMilestones.length > 0
-    ) {
-      // Sort milestones by parsed date, pick the earliest
-      const sortedMilestones = [...opportunity.dateMilestones].sort((a, b) => {
-        const dateA = parseMilestoneDate(a.date);
-        const dateB = parseMilestoneDate(b.date);
-        return (dateA?.getTime() ?? Infinity) - (dateB?.getTime() ?? Infinity);
-      });
-      const firstMilestone = sortedMilestones[0];
-      const earliestDate = parseMilestoneDate(firstMilestone.date);
-      if (earliestDate && !isNaN(earliestDate.getTime())) return earliestDate;
+      // Fallback to preview data
+      console.log(`  🔄 Falling back to preview data`);
+      return getEarliestDeadline(opportunity);
+    } catch (error) {
+      console.error(`❌ Error in getEarliestDeadlineFromFullData for "${opportunity.title}":`, error);
+      // Fallback to preview data
+      return getEarliestDeadline(opportunity);
     }
+  };
 
-    // Check for deadline field
+  const getEarliestDeadline = (opportunity: any): Date => {
+    console.log(`🔍 getEarliestDeadline called for "${opportunity.title}"`);
+    console.log(`  - Has dateMilestones: ${!!opportunity.dateMilestones}`);
+    console.log(`  - DateMilestones:`, opportunity.dateMilestones);
+    
+    // Check if we have dateMilestones
+    if (opportunity.dateMilestones && Array.isArray(opportunity.dateMilestones) && opportunity.dateMilestones.length > 0) {
+      console.log(`  📅 Processing ${opportunity.dateMilestones.length} dateMilestones`);
+      
+      // Use the proven parseFlexibleDate function
+      const validMilestones = opportunity.dateMilestones
+        .map((milestone: any) => {
+          console.log(`    Milestone:`, milestone);
+          const parsedDate = parseFlexibleDate(milestone.date);
+          console.log(`    Parsed date:`, parsedDate ? parsedDate.toISOString() : 'null');
+          return { milestone, parsedDate };
+        })
+        .filter(({ parsedDate }: { parsedDate: Date | null }) => parsedDate !== null);
+      
+      console.log(`  ✅ Found ${validMilestones.length} valid milestones`);
+      
+      if (validMilestones.length > 0) {
+        // Sort by date and get the earliest
+        validMilestones.sort((a: any, b: any) => a.parsedDate!.getTime() - b.parsedDate!.getTime());
+        const earliestMilestone = validMilestones[0];
+        console.log(`📅 Earliest deadline: ${earliestMilestone.parsedDate!.toLocaleDateString()}`);
+        return earliestMilestone.parsedDate!;
+      }
+    }
+    
+    // Check for single deadline field
     if (opportunity.deadline) {
-      const deadline = opportunity.deadline.toDate
-        ? opportunity.deadline.toDate()
-        : new Date(opportunity.deadline);
-      if (!isNaN(deadline.getTime())) return deadline;
+      console.log(`  📅 Processing single deadline field`);
+      const deadline = parseFlexibleDate(opportunity.deadline);
+      if (deadline) {
+        console.log(`📅 Single deadline: ${deadline.toLocaleDateString()}`);
+        return deadline;
+      }
     }
-
-    // Fallback to createdAt + 30 days if no deadline
-    const fallback =
-      opportunity.createdAt?.toDate?.() || new Date(opportunity.createdAt);
-    return new Date(fallback.getTime() + 30 * 24 * 60 * 60 * 1000);
+    
+    // Fallback
+    console.log(`  🔄 Using fallback deadline`);
+    const fallback = opportunity.createdAt?.toDate?.() || new Date(opportunity.createdAt);
+    const fallbackDate = new Date(fallback.getTime() + 30 * 24 * 60 * 60 * 1000);
+    console.log(`📅 Fallback deadline: ${fallbackDate.toLocaleDateString()}`);
+    return fallbackDate;
   };
 
   // Filter opportunities by category (excluding resources from all categories)
@@ -320,6 +467,14 @@ const [showScrollTop, setShowScrollTop] = useState(false);
       console.log(
         `📋 Displaying ${bookmarkedOpportunities.length} saved opportunities`
       );
+      if (bookmarkedOpportunities.length > 0) {
+        console.log("📋 Saved opportunities:", bookmarkedOpportunities.map(op => ({
+          id: op.id,
+          title: op.title,
+          organizationName: getOpportunityOrganizationName(op),
+          specificCollection: op.specificCollection
+        })));
+      }
       return sortOpportunities(bookmarkedOpportunities);
     }
 
@@ -366,6 +521,10 @@ const [showScrollTop, setShowScrollTop] = useState(false);
           "  Bookmarked opportunity IDs:",
           bookmarked.map((b) => b.id)
         );
+        console.log(
+          "  Bookmarked opportunity titles:",
+          bookmarked.map((b) => b.title)
+        );
       }
     } catch (error) {
       console.error("Error fetching bookmarked opportunities:", error);
@@ -401,6 +560,9 @@ const [showScrollTop, setShowScrollTop] = useState(false);
       }
 
       setOpportunities(data);
+      
+      // Fetch deadlines for all opportunities
+      fetchOpportunityDeadlines(data);
     } catch (error) {
       console.error("Error fetching opportunities:", error);
       setOpportunities([]);
@@ -408,6 +570,41 @@ const [showScrollTop, setShowScrollTop] = useState(false);
       setLoading(false);
       setRefreshing(false);
     }
+  };
+
+  // Fetch deadlines for all opportunities
+  const fetchOpportunityDeadlines = async (opps: any[]) => {
+    console.log(`🔄 Starting to fetch deadlines for ${opps.length} opportunities`);
+    const deadlineMap = new Map<string, Date>();
+    
+    // Process opportunities in batches to avoid overwhelming the system
+    const batchSize = 5;
+    for (let i = 0; i < opps.length; i += batchSize) {
+      const batch = opps.slice(i, i + batchSize);
+      console.log(`📦 Processing batch ${Math.floor(i/batchSize) + 1} with ${batch.length} opportunities`);
+      
+      const deadlinePromises = batch.map(async (op) => {
+        try {
+          console.log(`🔍 Fetching deadline for "${op.title}" (${op.id}) from ${op.specificCollection}`);
+          const deadline = await getEarliestDeadlineFromFullData(op);
+          console.log(`✅ Got deadline for "${op.title}": ${deadline.toLocaleDateString()}`);
+          return { id: op.id, deadline };
+        } catch (error) {
+          console.error(`❌ Error fetching deadline for ${op.id}:`, error);
+          const fallbackDeadline = getEarliestDeadline(op);
+          console.log(`🔄 Using fallback deadline for "${op.title}": ${fallbackDeadline.toLocaleDateString()}`);
+          return { id: op.id, deadline: fallbackDeadline };
+        }
+      });
+      
+      const results = await Promise.all(deadlinePromises);
+      results.forEach(({ id, deadline }) => {
+        deadlineMap.set(id, deadline);
+      });
+    }
+    
+    console.log(`✅ Completed fetching deadlines for ${deadlineMap.size} opportunities`);
+    setOpportunityDeadlines(deadlineMap);
   };
 
   useEffect(() => {
@@ -485,6 +682,13 @@ const [showScrollTop, setShowScrollTop] = useState(false);
       // Refresh bookmarked opportunities
       console.log(`  Refreshing bookmarked opportunities list...`);
       await fetchBookmarkedOpportunities();
+      
+      // If we're currently viewing saved opportunities, refresh the display
+      if (selectedCategory === "saved") {
+        console.log(`  Refreshing saved view...`);
+        // Force a re-render by updating state
+        setBookmarkedOpportunities(prev => [...prev]);
+      }
     } catch (error) {
       console.error("❌ Error toggling bookmark:", error);
     }
@@ -621,6 +825,11 @@ const [showScrollTop, setShowScrollTop] = useState(false);
                     }
                   } else {
                     setSelectedCategory(c.value);
+                    // If switching to saved category, refresh bookmarked opportunities
+                    if (c.value === "saved") {
+                      console.log("🔄 Switching to saved category, refreshing bookmarks...");
+                      fetchBookmarkedOpportunities();
+                    }
                   }
                 }}
               />
@@ -676,8 +885,8 @@ const [showScrollTop, setShowScrollTop] = useState(false);
                 title={op.title}
                 postedBy={getOpportunityOrganizationName(op)}
                 posterVerified={isOpportunityOrganizationVerified(op)}
-                deadline={formatDate(getEarliestDeadline(op))}
-                amount={op.amount || "N/A"}
+                deadline={op.category === "Study Spot" ? undefined : formatDate(opportunityDeadlines.get(op.id) || getEarliestDeadline(op))}
+                amount={op.category === "Study Spot" ? undefined : (op.amount || "N/A")}
                 description={op.description}
                 tag={op.category}
                 bookmarked={isOpportunityBookmarked(

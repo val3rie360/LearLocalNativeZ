@@ -11,6 +11,7 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import MapView, { Marker } from "react-native-maps";
 import { useAuth } from "../../contexts/AuthContext";
 import { getDownloadUrl } from "../../services/cloudinaryUploadService";
 import {
@@ -228,7 +229,10 @@ const Opportunity = () => {
           <Ionicons name="person-outline" size={16} color="#fff" />
           <Text className="ml-2 text-white text-[15px] font-karla">
             <Text className="font-karla-bold">Posted by:</Text>{" "}
-            {opportunity.organizationName || "Organization"}
+            {opportunity?.organizationProfile?.name ??
+              opportunity?.organizationName ??
+              opportunity?.organization?.name ??
+              "Organization"}
           </Text>
         </View>
         <View className="flex-row items-center mb-1">
@@ -284,6 +288,37 @@ const Opportunity = () => {
             <Text className="text-[#605E8F] text-[14px] font-karla mb-3">
               {opportunity.description || "No description available"}
             </Text>
+
+            {/* Availability Section - For Study Spots */}
+            {opportunity.category === "Study Spot" && (
+              <>
+                <Text className="font-karla-bold text-[16px] text-[#18181B] mb-2 mt-4">
+                  Availability
+                </Text>
+                <View className="bg-[#D1FAE5] rounded-xl p-3 mb-3">
+                  <View className="flex-row items-center mb-2">
+                    <Ionicons name="time" size={18} color="#10B981" />
+                    <Text className="ml-2 font-karla-bold text-[14px] text-[#10B981]">
+                      Operating Hours
+                    </Text>
+                  </View>
+                  {opportunity.openTime && opportunity.closeTime ? (
+                    <Text className="ml-7 text-[#18181B] text-[13px] font-karla">
+                      {opportunity.openTime} - {opportunity.closeTime}
+                    </Text>
+                  ) : (
+                    <Text className="ml-7 text-[#18181B] text-[13px] font-karla">
+                      Hours not specified
+                    </Text>
+                  )}
+                  {opportunity.availabilityType && (
+                    <Text className="ml-7 text-[#18181B] text-[13px] font-karla-bold mt-1">
+                      Available: {opportunity.availabilityType}
+                    </Text>
+                  )}
+                </View>
+              </>
+            )}
 
             {opportunity.eligibility && (
               <>
@@ -350,49 +385,113 @@ const Opportunity = () => {
 
           {/* Action Buttons */}
           <View className="items-center mb-4 gap-3">
-            {/* Track Deadlines Button */}
-            <TouchableOpacity
-              className={`rounded-full py-3 px-8 items-center w-full max-w-[300px] flex-row justify-center ${
-                isRegistered
-                  ? "bg-[#F0EDFF] border-2 border-[#4B1EB4]"
-                  : "bg-[#4B1EB4]"
-              }`}
-              activeOpacity={0.8}
-              disabled={isTrackingLoading}
-              onPress={handleToggleTracking}
-            >
-              {isTrackingLoading ? (
-                <ActivityIndicator size="small" color={isRegistered ? "#4B1EB4" : "#fff"} />
-              ) : (
-                <>
-                  <Ionicons
-                    name={isRegistered ? "checkmark-circle" : "calendar"}
-                    size={20}
-                    color={isRegistered ? "#4B1EB4" : "#fff"}
-                    style={{ marginRight: 8 }}
-                  />
-                  <Text
-                    className={`font-karla-bold text-[16px] ${
-                      isRegistered ? "text-[#4B1EB4]" : "text-white"
-                    }`}
-                  >
-                    {isRegistered ? "Tracking Deadlines" : "Track Deadlines"}
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
+            {/* Map Preview - For Study Spots */}
+            {opportunity.category === "Study Spot" && opportunity.location && (
+              <TouchableOpacity 
+                className="w-full max-w-[300px] mb-3"
+                onPress={() => {
+                  // Navigate to Map.tsx with the study spot centered
+                  router.push({
+                    pathname: "/studentPages/(tabs)/Map",
+                    params: {
+                      centerLat: opportunity.location.latitude.toString(),
+                      centerLng: opportunity.location.longitude.toString(),
+                      opportunityId: opportunity.id,
+                    }
+                  });
+                }}
+                activeOpacity={0.8}
+              >
+                <Text className="font-karla-bold text-[16px] text-[#18181B] mb-2 text-center">
+                  Location Preview
+                </Text>
+                <View className="rounded-xl overflow-hidden border-2 border-[#4B1EB4]">
+                  <View className="h-32">
+                    <MapView
+                      style={{ flex: 1 }}
+                      region={{
+                        latitude: opportunity.location.latitude,
+                        longitude: opportunity.location.longitude,
+                        latitudeDelta: 0.01,
+                        longitudeDelta: 0.01,
+                      }}
+                      scrollEnabled={false}
+                      zoomEnabled={false}
+                      pitchEnabled={false}
+                      rotateEnabled={false}
+                      moveOnMarkerPress={false}
+                    >
+                      <Marker
+                        coordinate={{
+                          latitude: opportunity.location.latitude,
+                          longitude: opportunity.location.longitude,
+                        }}
+                        pinColor="#10B981"
+                        title={opportunity.title}
+                        description="Study Spot Location"
+                      />
+                    </MapView>
+                  </View>
+                  <View className="bg-[#D1FAE5] px-3 py-2 flex-row items-center justify-between">
+                    <View className="flex-row items-center">
+                      <Ionicons name="location" size={16} color="#10B981" />
+                      <Text className="ml-2 text-[#10B981] text-[12px] font-karla-bold">
+                        Tap to view on Map
+                      </Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={16} color="#10B981" />
+                  </View>
+                </View>
+              </TouchableOpacity>
+            )}
 
-            {/* Register Now Button */}
-            <TouchableOpacity
-              className={`bg-white border-2 border-[#4B1EB4] rounded-full py-3 px-8 items-center w-full max-w-[300px] ${!opportunity.link ? "opacity-50" : ""}`}
-              activeOpacity={0.8}
-              disabled={!opportunity.link}
-              onPress={handleRegister}
-            >
-              <Text className="text-[#4B1EB4] font-karla-bold text-[16px]">
-                Register Now
-              </Text>
-            </TouchableOpacity>
+            {/* Track Deadlines Button - Only for non-Study Spot opportunities */}
+            {opportunity.category !== "Study Spot" && (
+              <TouchableOpacity
+                className={`rounded-full py-3 px-8 items-center w-full max-w-[300px] flex-row justify-center ${
+                  isRegistered
+                    ? "bg-[#F0EDFF] border-2 border-[#4B1EB4]"
+                    : "bg-[#4B1EB4]"
+                }`}
+                activeOpacity={0.8}
+                disabled={isTrackingLoading}
+                onPress={handleToggleTracking}
+              >
+                {isTrackingLoading ? (
+                  <ActivityIndicator size="small" color={isRegistered ? "#4B1EB4" : "#fff"} />
+                ) : (
+                  <>
+                    <Ionicons
+                      name={isRegistered ? "checkmark-circle" : "calendar"}
+                      size={20}
+                      color={isRegistered ? "#4B1EB4" : "#fff"}
+                      style={{ marginRight: 8 }}
+                    />
+                    <Text
+                      className={`font-karla-bold text-[16px] ${
+                        isRegistered ? "text-[#4B1EB4]" : "text-white"
+                      }`}
+                    >
+                      {isRegistered ? "Tracking Deadlines" : "Track Deadlines"}
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+
+            {/* Register Now Button - Only for non-Study Spot opportunities */}
+            {opportunity.category !== "Study Spot" && (
+              <TouchableOpacity
+                className={`bg-white border-2 border-[#4B1EB4] rounded-full py-3 px-8 items-center w-full max-w-[300px] ${!opportunity.link ? "opacity-50" : ""}`}
+                activeOpacity={0.8}
+                disabled={!opportunity.link}
+                onPress={handleRegister}
+              >
+                <Text className="text-[#4B1EB4] font-karla-bold text-[16px]">
+                  Register Now
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         </ScrollView>
       </View>

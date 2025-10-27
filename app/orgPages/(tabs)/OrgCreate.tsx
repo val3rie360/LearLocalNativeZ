@@ -106,8 +106,8 @@ const OrgCreate = () => {
     null
   );
   const [mapRegion, setMapRegion] = useState({
-    latitude: 37.78825,
-    longitude: -122.4324,
+    latitude: 9.3077,
+    longitude: 123.3054,
     latitudeDelta: 0.0922,
     longitudeDelta: 0.0421,
   });
@@ -122,6 +122,21 @@ const OrgCreate = () => {
   const [availabilityEndHour, setAvailabilityEndHour] = useState("");
   const [showTimeDropdown, setShowTimeDropdown] = useState(false);
   const [showEndTimeDropdown, setShowEndTimeDropdown] = useState(false);
+
+  // Address search states
+  const [addressSearch, setAddressSearch] = useState("");
+  const [eventAddressSearch, setEventAddressSearch] = useState("");
+  const [workshopAddressSearch, setWorkshopAddressSearch] = useState("");
+  const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
+  const [showEventAddressSuggestions, setShowEventAddressSuggestions] =
+    useState(false);
+  const [showWorkshopAddressSuggestions, setShowWorkshopAddressSuggestions] =
+    useState(false);
+  const [addressSuggestions, setAddressSuggestions] = useState([]);
+  const [eventAddressSuggestions, setEventAddressSuggestions] = useState([]);
+  const [workshopAddressSuggestions, setWorkshopAddressSuggestions] = useState(
+    []
+  );
   const hourOptions = [
     "6:00 AM",
     "7:00 AM",
@@ -143,6 +158,30 @@ const OrgCreate = () => {
   ];
   const [studySpotDetails, setStudySpotDetails] = useState("");
   const [link, setLink] = useState("");
+
+  // Competition/Event specific fields
+  const [isInPersonEvent, setIsInPersonEvent] = useState(false);
+  const [eventLocation, setEventLocation] =
+    useState<Location.LocationObject | null>(null);
+  const [eventMapRegion, setEventMapRegion] = useState({
+    latitude: 9.3077,
+    longitude: 123.3054,
+    latitudeDelta: 0.0922,
+    longitudeDelta: 0.0421,
+  });
+  const [showEventMapModal, setShowEventMapModal] = useState(false);
+
+  // Workshop/Seminar specific fields
+  const [isInPersonWorkshop, setIsInPersonWorkshop] = useState(false);
+  const [workshopLocation, setWorkshopLocation] =
+    useState<Location.LocationObject | null>(null);
+  const [workshopMapRegion, setWorkshopMapRegion] = useState({
+    latitude: 9.3077,
+    longitude: 123.3054,
+    latitudeDelta: 0.0922,
+    longitudeDelta: 0.0421,
+  });
+  const [showWorkshopMapModal, setShowWorkshopMapModal] = useState(false);
 
   // Workshop/Seminar specific fields
   const [workshopStarts, setWorkshopStarts] = useState("");
@@ -356,6 +395,215 @@ const OrgCreate = () => {
       );
       setShowMapModal(true);
     }
+  };
+
+  const getWorkshopCurrentLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission denied",
+          "Location permission is required to use this feature"
+        );
+        return;
+      }
+
+      const currentLocation = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      setWorkshopLocation(currentLocation);
+      setWorkshopMapRegion({
+        latitude: currentLocation.coords.latitude,
+        longitude: currentLocation.coords.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      });
+      setShowWorkshopMapModal(true);
+    } catch (error) {
+      console.log("Workshop location error:", error);
+      Alert.alert(
+        "Error",
+        "Failed to get current location. You can still select a location manually on the map."
+      );
+      setShowWorkshopMapModal(true);
+    }
+  };
+
+  const handleWorkshopMapPress = (event: any) => {
+    const { latitude, longitude } = event.nativeEvent.coordinate;
+    const newLocation = {
+      coords: {
+        latitude,
+        longitude,
+        altitude: null,
+        accuracy: null,
+        altitudeAccuracy: null,
+        heading: null,
+        speed: null,
+      },
+      timestamp: Date.now(),
+    };
+    setWorkshopLocation(newLocation);
+  };
+
+  // Address search functions
+  const searchAddress = async (
+    query: string,
+    type: "study" | "event" | "workshop"
+  ) => {
+    if (query.length < 3) {
+      if (type === "study") {
+        setAddressSuggestions([]);
+        setShowAddressSuggestions(false);
+      } else if (type === "event") {
+        setEventAddressSuggestions([]);
+        setShowEventAddressSuggestions(false);
+      } else if (type === "workshop") {
+        setWorkshopAddressSuggestions([]);
+        setShowWorkshopAddressSuggestions(false);
+      }
+      return;
+    }
+
+    try {
+      // Using Google Places API for address suggestions
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
+          query
+        )}&key=${process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}&types=address`
+      );
+      const data = await response.json();
+
+      if (data.predictions) {
+        if (type === "study") {
+          setAddressSuggestions(data.predictions);
+          setShowAddressSuggestions(true);
+        } else if (type === "event") {
+          setEventAddressSuggestions(data.predictions);
+          setShowEventAddressSuggestions(true);
+        } else if (type === "workshop") {
+          setWorkshopAddressSuggestions(data.predictions);
+          setShowWorkshopAddressSuggestions(true);
+        }
+      }
+    } catch (error) {
+      console.error("Address search error:", error);
+    }
+  };
+
+  const selectAddress = async (
+    placeId: string,
+    description: string,
+    type: "study" | "event" | "workshop"
+  ) => {
+    try {
+      // Get place details including coordinates
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&key=${process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}&fields=geometry,formatted_address`
+      );
+      const data = await response.json();
+
+      if (data.result && data.result.geometry) {
+        const { lat, lng } = data.result.geometry.location;
+        const newLocation = {
+          coords: {
+            latitude: lat,
+            longitude: lng,
+            altitude: null,
+            accuracy: null,
+            altitudeAccuracy: null,
+            heading: null,
+            speed: null,
+          },
+          timestamp: Date.now(),
+        };
+
+        if (type === "study") {
+          setLocation(newLocation);
+          setMapRegion({
+            latitude: lat,
+            longitude: lng,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          });
+          setAddressSearch(description);
+          setShowAddressSuggestions(false);
+        } else if (type === "event") {
+          setEventLocation(newLocation);
+          setEventMapRegion({
+            latitude: lat,
+            longitude: lng,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          });
+          setEventAddressSearch(description);
+          setShowEventAddressSuggestions(false);
+        } else if (type === "workshop") {
+          setWorkshopLocation(newLocation);
+          setWorkshopMapRegion({
+            latitude: lat,
+            longitude: lng,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          });
+          setWorkshopAddressSearch(description);
+          setShowWorkshopAddressSuggestions(false);
+        }
+      }
+    } catch (error) {
+      console.error("Address selection error:", error);
+    }
+  };
+
+  const getEventCurrentLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission denied",
+          "Location permission is required to use this feature"
+        );
+        return;
+      }
+
+      const currentLocation = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      setEventLocation(currentLocation);
+      setEventMapRegion({
+        latitude: currentLocation.coords.latitude,
+        longitude: currentLocation.coords.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      });
+      setShowEventMapModal(true);
+    } catch (error) {
+      console.log("Event location error:", error);
+      Alert.alert(
+        "Error",
+        "Failed to get current location. You can still select a location manually on the map."
+      );
+      setShowEventMapModal(true);
+    }
+  };
+
+  const handleEventMapPress = (event: any) => {
+    const { latitude, longitude } = event.nativeEvent.coordinate;
+    const newLocation = {
+      coords: {
+        latitude,
+        longitude,
+        altitude: null,
+        accuracy: null,
+        altitudeAccuracy: null,
+        heading: null,
+        speed: null,
+      },
+      timestamp: Date.now(),
+    };
+    setEventLocation(newLocation);
   };
 
   const handleMapPress = (event: any) => {
@@ -621,6 +869,26 @@ const OrgCreate = () => {
       return;
     }
 
+    // Validate in-person event location
+    if (
+      category === "Competition / Event" &&
+      isInPersonEvent &&
+      !eventLocation
+    ) {
+      setErrorMessage("Please select a location for the in-person event");
+      return;
+    }
+
+    // Validate in-person workshop location
+    if (
+      category === "Workshop / Seminar" &&
+      isInPersonWorkshop &&
+      !workshopLocation
+    ) {
+      setErrorMessage("Please select a location for the in-person workshop");
+      return;
+    }
+
     const requiresLink = new Set([
       "Scholarship / Grant",
       "Competition / Event",
@@ -665,24 +933,38 @@ const OrgCreate = () => {
                 }
               : null,
           }),
+          // Event-specific fields
+          ...(category === "Competition / Event" && {
+            isInPersonEvent,
+            ...(isInPersonEvent &&
+              eventLocation && {
+                location: {
+                  latitude: eventLocation.coords.latitude,
+                  longitude: eventLocation.coords.longitude,
+                  timestamp: eventLocation.timestamp,
+                },
+              }),
+          }),
         };
       } else if (category === "Workshop / Seminar") {
         // Workshop specific fields
-        if (location) {
-          opportunityData = {
-            ...opportunityData,
-            workshopStarts: workshopStarts,
-            workshopEnds: workshopEnds,
-            repeats,
-            ...(repeats && { selectedDays }),
-            location: {
-              latitude: location.coords.latitude,
-              longitude: location.coords.longitude,
-              timestamp: location.timestamp,
-            },
-            ...(dateMilestones.length > 0 && { dateMilestones }),
-          };
-        }
+        opportunityData = {
+          ...opportunityData,
+          workshopStarts: workshopStarts,
+          workshopEnds: workshopEnds,
+          repeats,
+          ...(repeats && { selectedDays }),
+          // Workshop event type and location
+          isInPersonWorkshop,
+          ...(isInPersonWorkshop &&
+            workshopLocation && {
+              location: {
+                latitude: workshopLocation.coords.latitude,
+                longitude: workshopLocation.coords.longitude,
+                timestamp: workshopLocation.timestamp,
+              },
+            }),
+        };
       } else if (category === "Study Spot") {
         // Study Spot specific fields
         if (location) {
@@ -1049,6 +1331,104 @@ const OrgCreate = () => {
               </>
             )}
 
+            {/* Workshop/Seminar Event Type - Show for Workshop / Seminar category */}
+            {category === "Workshop / Seminar" && (
+              <>
+                <Text className="text-sm text-black font-semibold mb-1">
+                  Workshop Type
+                </Text>
+                <View className="flex-row items-center mb-3">
+                  <TouchableOpacity
+                    className={`flex-row items-center px-3 py-2 rounded-lg mr-3 ${
+                      !isInPersonWorkshop
+                        ? "bg-blue-100 border-2 border-blue-300"
+                        : "bg-gray-100 border-2 border-gray-300"
+                    }`}
+                    onPress={() => setIsInPersonWorkshop(false)}
+                  >
+                    <Text
+                      className={`text-lg mr-2 ${
+                        !isInPersonWorkshop ? "text-blue-600" : "text-gray-500"
+                      }`}
+                    >
+                      🌐
+                    </Text>
+                    <Text
+                      className={`font-karla ${
+                        !isInPersonWorkshop
+                          ? "text-blue-700 font-semibold"
+                          : "text-gray-600"
+                      }`}
+                    >
+                      Online
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    className={`flex-row items-center px-3 py-2 rounded-lg ${
+                      isInPersonWorkshop
+                        ? "bg-green-100 border-2 border-green-300"
+                        : "bg-gray-100 border-2 border-gray-300"
+                    }`}
+                    onPress={() => setIsInPersonWorkshop(true)}
+                  >
+                    <Text
+                      className={`text-lg mr-2 ${
+                        isInPersonWorkshop ? "text-green-600" : "text-gray-500"
+                      }`}
+                    >
+                      🏢
+                    </Text>
+                    <Text
+                      className={`font-karla ${
+                        isInPersonWorkshop
+                          ? "text-green-700 font-semibold"
+                          : "text-gray-600"
+                      }`}
+                    >
+                      In-Person
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Location Picker - Only show if in-person workshop is selected */}
+                {isInPersonWorkshop && (
+                  <>
+                    <Text className="text-sm text-black font-semibold mb-1">
+                      Workshop Location *
+                    </Text>
+                    <TouchableOpacity
+                      className={`rounded-xl px-3 h-11 justify-center border mb-3 ${
+                        workshopLocation
+                          ? "bg-green-50 border-green-300"
+                          : "bg-white border-gray-200"
+                      }`}
+                      onPress={getWorkshopCurrentLocation}
+                    >
+                      <View className="flex-row items-center">
+                        <Text className="text-2xl mr-3">
+                          {workshopLocation ? "✅" : "📍"}
+                        </Text>
+                        <Text
+                          className={`text-base flex-1 ${
+                            workshopLocation ? "text-green-800" : "text-black"
+                          }`}
+                        >
+                          {workshopLocation
+                            ? `Workshop location selected: ${workshopLocation.coords.latitude.toFixed(
+                                4
+                              )}, ${workshopLocation.coords.longitude.toFixed(
+                                4
+                              )}`
+                            : "Tap to select workshop location"}
+                        </Text>
+                        <Text className="text-lg text-gray-400">→</Text>
+                      </View>
+                    </TouchableOpacity>
+                  </>
+                )}
+              </>
+            )}
+
             {/* Workshop/Seminar Schedule - Show for Workshop / Seminar category */}
             {category === "Workshop / Seminar" && (
               <>
@@ -1252,9 +1632,104 @@ const OrgCreate = () => {
               </>
             )}
 
-            {/* Location Picker - Show for Study Spot and Workshop / Seminar categories */}
-            {(category === "Study Spot" ||
-              category === "Workshop / Seminar") && (
+            {/* In-Person Event Location - Only show for Competition / Event category */}
+            {category === "Competition / Event" && (
+              <>
+                <Text className="text-sm text-black font-semibold mb-1">
+                  Event Type
+                </Text>
+                <View className="flex-row items-center mb-3">
+                  <TouchableOpacity
+                    className={`flex-row items-center px-3 py-2 rounded-lg mr-3 ${
+                      !isInPersonEvent
+                        ? "bg-blue-100 border-2 border-blue-300"
+                        : "bg-gray-100 border-2 border-gray-300"
+                    }`}
+                    onPress={() => setIsInPersonEvent(false)}
+                  >
+                    <Text
+                      className={`text-lg mr-2 ${
+                        !isInPersonEvent ? "text-blue-600" : "text-gray-500"
+                      }`}
+                    >
+                      🌐
+                    </Text>
+                    <Text
+                      className={`font-karla ${
+                        !isInPersonEvent
+                          ? "text-blue-700 font-semibold"
+                          : "text-gray-600"
+                      }`}
+                    >
+                      Online
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    className={`flex-row items-center px-3 py-2 rounded-lg ${
+                      isInPersonEvent
+                        ? "bg-green-100 border-2 border-green-300"
+                        : "bg-gray-100 border-2 border-gray-300"
+                    }`}
+                    onPress={() => setIsInPersonEvent(true)}
+                  >
+                    <Text
+                      className={`text-lg mr-2 ${
+                        isInPersonEvent ? "text-green-600" : "text-gray-500"
+                      }`}
+                    >
+                      🏢
+                    </Text>
+                    <Text
+                      className={`font-karla ${
+                        isInPersonEvent
+                          ? "text-green-700 font-semibold"
+                          : "text-gray-600"
+                      }`}
+                    >
+                      In-Person
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Location Picker - Only show if in-person event is selected */}
+                {isInPersonEvent && (
+                  <>
+                    <Text className="text-sm text-black font-semibold mb-1">
+                      Event Location *
+                    </Text>
+                    <TouchableOpacity
+                      className={`rounded-xl px-3 h-11 justify-center border mb-3 ${
+                        eventLocation
+                          ? "bg-green-50 border-green-300"
+                          : "bg-white border-gray-200"
+                      }`}
+                      onPress={getEventCurrentLocation}
+                    >
+                      <View className="flex-row items-center">
+                        <Text className="text-2xl mr-3">
+                          {eventLocation ? "✅" : "📍"}
+                        </Text>
+                        <Text
+                          className={`text-base flex-1 ${
+                            eventLocation ? "text-green-800" : "text-black"
+                          }`}
+                        >
+                          {eventLocation
+                            ? `Event location selected: ${eventLocation.coords.latitude.toFixed(
+                                4
+                              )}, ${eventLocation.coords.longitude.toFixed(4)}`
+                            : "Tap to select event location"}
+                        </Text>
+                        <Text className="text-lg text-gray-400">→</Text>
+                      </View>
+                    </TouchableOpacity>
+                  </>
+                )}
+              </>
+            )}
+
+            {/* Location Picker - Show for Study Spot only */}
+            {category === "Study Spot" && (
               <>
                 <Text className="text-sm text-black font-semibold mb-1">
                   Location *
@@ -1280,7 +1755,7 @@ const OrgCreate = () => {
                         ? `Location selected: ${location.coords.latitude.toFixed(
                             4
                           )}, ${location.coords.longitude.toFixed(4)}`
-                        : "Tap to select location"}
+                        : "Tap to select study spot location"}
                     </Text>
                     <Text className="text-lg text-gray-400">→</Text>
                   </View>
@@ -1684,7 +2159,7 @@ const OrgCreate = () => {
             >
               <View className="flex-1 bg-white">
                 {/* Header */}
-                <View className="flex-row items-center justify-between p-4 bg-[#a084e8]">
+                <View className="flex-row items-center justify-between pt-12 pb-4 px-4 bg-[#a084e8]">
                   <TouchableOpacity
                     onPress={() => setShowMapModal(false)}
                     className="bg-white rounded-full p-2"
@@ -1694,50 +2169,76 @@ const OrgCreate = () => {
                   <Text className="text-lg font-bold text-white">
                     Select Location
                   </Text>
-                  <TouchableOpacity
-                    onPress={confirmLocation}
-                    className="bg-white rounded-full px-4 py-2"
-                    disabled={!location}
-                  >
-                    <Text
-                      className={`text-sm font-bold ${
-                        location ? "text-[#a084e8]" : "text-gray-400"
-                      }`}
-                    >
-                      Confirm
-                    </Text>
-                  </TouchableOpacity>
+                  <View className="w-10" />
                 </View>
 
-                {/* Action Buttons */}
-                <View className="flex-row space-x-3 p-4 bg-gray-50">
-                  <TouchableOpacity
-                    className="flex-1 bg-[#a084e8] rounded-xl py-3"
-                    onPress={getCurrentLocation}
-                  >
-                    <Text className="text-white text-center font-bold">
-                      📍 Use Current Location
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    className="flex-1 bg-gray-200 rounded-xl py-3"
-                    onPress={() => setShowMapModal(false)}
-                  >
-                    <Text className="text-gray-600 text-center font-bold">
-                      Cancel
-                    </Text>
-                  </TouchableOpacity>
+                {/* Address Search */}
+                <View className="p-4 bg-white border-b border-gray-200">
+                  <Text className="text-sm text-gray-600 mb-2 font-karla-bold">
+                    Search Address
+                  </Text>
+                  <TextInput
+                    className="bg-gray-50 rounded-xl px-3 py-3 border border-gray-200 mb-2"
+                    placeholder="Type address to search..."
+                    value={addressSearch}
+                    onChangeText={(text) => {
+                      setAddressSearch(text);
+                      searchAddress(text, "study");
+                    }}
+                    onFocus={() => {
+                      if (addressSuggestions.length > 0) {
+                        setShowAddressSuggestions(true);
+                      }
+                    }}
+                  />
+
+                  {/* Address Suggestions */}
+                  {showAddressSuggestions && addressSuggestions.length > 0 && (
+                    <View className="bg-white border border-gray-200 rounded-xl max-h-40">
+                      <ScrollView>
+                        {addressSuggestions.map(
+                          (suggestion: any, index: number) => (
+                            <TouchableOpacity
+                              key={index}
+                              className="px-3 py-3 border-b border-gray-100"
+                              onPress={() =>
+                                selectAddress(
+                                  suggestion.place_id,
+                                  suggestion.description,
+                                  "study"
+                                )
+                              }
+                            >
+                              <Text className="text-sm text-gray-800 font-karla">
+                                {suggestion.description}
+                              </Text>
+                            </TouchableOpacity>
+                          )
+                        )}
+                      </ScrollView>
+                    </View>
+                  )}
                 </View>
 
                 {/* Map */}
                 <View className="flex-1">
                   <MapView
                     style={{ flex: 1 }}
+                    initialRegion={{
+                      latitude: 9.3077,
+                      longitude: 123.3054,
+                      latitudeDelta: 0.0922,
+                      longitudeDelta: 0.0421,
+                    }}
                     region={mapRegion}
                     onPress={handleMapPress}
                     showsUserLocation={true}
                     showsMyLocationButton={true}
                     mapType="standard"
+                    onMapReady={() => console.log("Study Spot Map Ready")}
+                    onError={(error) =>
+                      console.log("Study Spot Map Error:", error)
+                    }
                   >
                     {location && (
                       <Marker
@@ -1766,6 +2267,339 @@ const OrgCreate = () => {
                         )}, ${location.coords.longitude.toFixed(6)}`
                       : "No location selected yet"}
                   </Text>
+                </View>
+
+                {/* Confirmation Button */}
+                <View className="p-4 bg-white border-t border-gray-200">
+                  <View className="flex-row space-x-3 mb-3">
+                    <TouchableOpacity
+                      className="flex-1 bg-blue-500 rounded-xl py-3"
+                      onPress={getCurrentLocation}
+                    >
+                      <Text className="text-white text-center font-bold">
+                        📍 Use Current Location
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  <TouchableOpacity
+                    className={`rounded-xl py-4 px-6 ${
+                      location ? "bg-[#a084e8]" : "bg-gray-300"
+                    }`}
+                    onPress={() => setShowMapModal(false)}
+                    disabled={!location}
+                  >
+                    <Text
+                      className={`text-center text-lg font-bold ${
+                        location ? "text-white" : "text-gray-500"
+                      }`}
+                    >
+                      {location
+                        ? "✓ Confirm Location"
+                        : "Select a location first"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </Modal>
+          )}
+
+          {/* Event Location Selection Modal - Only for Competition/Event */}
+          {category === "Competition / Event" && isInPersonEvent && (
+            <Modal
+              visible={showEventMapModal}
+              transparent={false}
+              animationType="slide"
+              onRequestClose={() => setShowEventMapModal(false)}
+            >
+              <View className="flex-1 bg-white">
+                {/* Header */}
+                <View className="flex-row items-center justify-between pt-12 pb-4 px-4 bg-[#a084e8]">
+                  <TouchableOpacity
+                    onPress={() => setShowEventMapModal(false)}
+                    className="bg-white rounded-full p-2"
+                  >
+                    <Text className="text-lg text-[#a084e8] font-bold">←</Text>
+                  </TouchableOpacity>
+                  <Text className="text-white text-lg font-bold">
+                    Select Event Location
+                  </Text>
+                  <View className="w-10" />
+                </View>
+
+                {/* Address Search */}
+                <View className="p-4 bg-white border-b border-gray-200">
+                  <Text className="text-sm text-gray-600 mb-2 font-karla-bold">
+                    Search Address
+                  </Text>
+                  <TextInput
+                    className="bg-gray-50 rounded-xl px-3 py-3 border border-gray-200 mb-2"
+                    placeholder="Type address to search..."
+                    value={eventAddressSearch}
+                    onChangeText={(text) => {
+                      setEventAddressSearch(text);
+                      searchAddress(text, "event");
+                    }}
+                    onFocus={() => {
+                      if (eventAddressSuggestions.length > 0) {
+                        setShowEventAddressSuggestions(true);
+                      }
+                    }}
+                  />
+
+                  {/* Address Suggestions */}
+                  {showEventAddressSuggestions &&
+                    eventAddressSuggestions.length > 0 && (
+                      <View className="bg-white border border-gray-200 rounded-xl max-h-40">
+                        <ScrollView>
+                          {eventAddressSuggestions.map(
+                            (suggestion: any, index: number) => (
+                              <TouchableOpacity
+                                key={index}
+                                className="px-3 py-3 border-b border-gray-100"
+                                onPress={() =>
+                                  selectAddress(
+                                    suggestion.place_id,
+                                    suggestion.description,
+                                    "event"
+                                  )
+                                }
+                              >
+                                <Text className="text-sm text-gray-800 font-karla">
+                                  {suggestion.description}
+                                </Text>
+                              </TouchableOpacity>
+                            )
+                          )}
+                        </ScrollView>
+                      </View>
+                    )}
+                </View>
+
+                {/* Map */}
+                <View className="flex-1">
+                  <MapView
+                    style={{ flex: 1 }}
+                    initialRegion={{
+                      latitude: 9.3077,
+                      longitude: 123.3054,
+                      latitudeDelta: 0.0922,
+                      longitudeDelta: 0.0421,
+                    }}
+                    region={eventMapRegion}
+                    onPress={handleEventMapPress}
+                    onMapReady={() => console.log("Event Map Ready")}
+                    onError={(error) => console.log("Event Map Error:", error)}
+                  >
+                    {eventLocation && (
+                      <Marker
+                        coordinate={{
+                          latitude: eventLocation.coords.latitude,
+                          longitude: eventLocation.coords.longitude,
+                        }}
+                        title="Event Location"
+                        description="Selected location for event"
+                        pinColor="#a084e8"
+                      />
+                    )}
+                  </MapView>
+                </View>
+
+                {/* Instructions */}
+                <View className="p-4 bg-gray-50">
+                  <Text className="text-sm text-gray-600 text-center mb-2">
+                    Tap anywhere on the map to place a pin for your event
+                    location
+                  </Text>
+                  <Text className="text-xs text-gray-500 text-center">
+                    {eventLocation
+                      ? `Current selection: ${eventLocation.coords.latitude.toFixed(
+                          6
+                        )}, ${eventLocation.coords.longitude.toFixed(6)}`
+                      : "No location selected yet"}
+                  </Text>
+                </View>
+
+                {/* Confirmation Button */}
+                <View className="p-4 bg-white border-t border-gray-200">
+                  <View className="flex-row space-x-3 mb-3">
+                    <TouchableOpacity
+                      className="flex-1 bg-blue-500 rounded-xl py-3"
+                      onPress={getEventCurrentLocation}
+                    >
+                      <Text className="text-white text-center font-bold">
+                        📍 Use Current Location
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  <TouchableOpacity
+                    className={`rounded-xl py-4 px-6 ${
+                      eventLocation ? "bg-[#a084e8]" : "bg-gray-300"
+                    }`}
+                    onPress={() => setShowEventMapModal(false)}
+                    disabled={!eventLocation}
+                  >
+                    <Text
+                      className={`text-center text-lg font-bold ${
+                        eventLocation ? "text-white" : "text-gray-500"
+                      }`}
+                    >
+                      {eventLocation
+                        ? "✓ Confirm Location"
+                        : "Select a location first"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </Modal>
+          )}
+
+          {/* Workshop Location Selection Modal - Only for Workshop/Seminar */}
+          {category === "Workshop / Seminar" && isInPersonWorkshop && (
+            <Modal
+              visible={showWorkshopMapModal}
+              transparent={false}
+              animationType="slide"
+              onRequestClose={() => setShowWorkshopMapModal(false)}
+            >
+              <View className="flex-1 bg-white">
+                {/* Header */}
+                <View className="flex-row items-center justify-between pt-12 pb-4 px-4 bg-[#a084e8]">
+                  <TouchableOpacity
+                    onPress={() => setShowWorkshopMapModal(false)}
+                    className="bg-white rounded-full p-2"
+                  >
+                    <Text className="text-lg text-[#a084e8] font-bold">←</Text>
+                  </TouchableOpacity>
+                  <Text className="text-white text-lg font-bold">
+                    Select Workshop Location
+                  </Text>
+                  <View className="w-10" />
+                </View>
+
+                {/* Address Search */}
+                <View className="p-4 bg-white border-b border-gray-200">
+                  <Text className="text-sm text-gray-600 mb-2 font-karla-bold">
+                    Search Address
+                  </Text>
+                  <TextInput
+                    className="bg-gray-50 rounded-xl px-3 py-3 border border-gray-200 mb-2"
+                    placeholder="Type address to search..."
+                    value={workshopAddressSearch}
+                    onChangeText={(text) => {
+                      setWorkshopAddressSearch(text);
+                      searchAddress(text, "workshop");
+                    }}
+                    onFocus={() => {
+                      if (workshopAddressSuggestions.length > 0) {
+                        setShowWorkshopAddressSuggestions(true);
+                      }
+                    }}
+                  />
+
+                  {/* Address Suggestions */}
+                  {showWorkshopAddressSuggestions &&
+                    workshopAddressSuggestions.length > 0 && (
+                      <View className="bg-white border border-gray-200 rounded-xl max-h-40">
+                        <ScrollView>
+                          {workshopAddressSuggestions.map(
+                            (suggestion: any, index: number) => (
+                              <TouchableOpacity
+                                key={index}
+                                className="px-3 py-3 border-b border-gray-100"
+                                onPress={() =>
+                                  selectAddress(
+                                    suggestion.place_id,
+                                    suggestion.description,
+                                    "workshop"
+                                  )
+                                }
+                              >
+                                <Text className="text-sm text-gray-800 font-karla">
+                                  {suggestion.description}
+                                </Text>
+                              </TouchableOpacity>
+                            )
+                          )}
+                        </ScrollView>
+                      </View>
+                    )}
+                </View>
+
+                {/* Map */}
+                <View className="flex-1">
+                  <MapView
+                    style={{ flex: 1 }}
+                    initialRegion={{
+                      latitude: 9.3077,
+                      longitude: 123.3054,
+                      latitudeDelta: 0.0922,
+                      longitudeDelta: 0.0421,
+                    }}
+                    region={workshopMapRegion}
+                    onPress={handleWorkshopMapPress}
+                    onMapReady={() => console.log("Workshop Map Ready")}
+                    onError={(error) =>
+                      console.log("Workshop Map Error:", error)
+                    }
+                  >
+                    {workshopLocation && (
+                      <Marker
+                        coordinate={{
+                          latitude: workshopLocation.coords.latitude,
+                          longitude: workshopLocation.coords.longitude,
+                        }}
+                        title="Workshop Location"
+                        description="Selected location for workshop"
+                        pinColor="#a084e8"
+                      />
+                    )}
+                  </MapView>
+                </View>
+
+                {/* Instructions */}
+                <View className="p-4 bg-gray-50">
+                  <Text className="text-sm text-gray-600 text-center mb-2">
+                    Tap anywhere on the map to place a pin for your workshop
+                    location
+                  </Text>
+                  <Text className="text-xs text-gray-500 text-center">
+                    {workshopLocation
+                      ? `Current selection: ${workshopLocation.coords.latitude.toFixed(
+                          6
+                        )}, ${workshopLocation.coords.longitude.toFixed(6)}`
+                      : "No location selected yet"}
+                  </Text>
+                </View>
+
+                {/* Confirmation Button */}
+                <View className="p-4 bg-white border-t border-gray-200">
+                  <View className="flex-row space-x-3 mb-3">
+                    <TouchableOpacity
+                      className="flex-1 bg-blue-500 rounded-xl py-3"
+                      onPress={getWorkshopCurrentLocation}
+                    >
+                      <Text className="text-white text-center font-bold">
+                        📍 Use Current Location
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  <TouchableOpacity
+                    className={`rounded-xl py-4 px-6 ${
+                      workshopLocation ? "bg-[#a084e8]" : "bg-gray-300"
+                    }`}
+                    onPress={() => setShowWorkshopMapModal(false)}
+                    disabled={!workshopLocation}
+                  >
+                    <Text
+                      className={`text-center text-lg font-bold ${
+                        workshopLocation ? "text-white" : "text-gray-500"
+                      }`}
+                    >
+                      {workshopLocation
+                        ? "✓ Confirm Location"
+                        : "Select a location first"}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               </View>
             </Modal>

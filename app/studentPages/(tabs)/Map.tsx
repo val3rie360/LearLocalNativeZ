@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import MapView, { Marker } from "../../../components/PlatformMap";
 import { getAllOpportunitiesWithLocations } from "../../../services/firestoreService";
 
@@ -41,6 +42,12 @@ interface Opportunity {
 type MapItem = Opportunity;
 
 const Map = () => {
+  const router = useRouter();
+  const { centerLat, centerLng, opportunityId } = useLocalSearchParams<{
+    centerLat?: string;
+    centerLng?: string;
+    opportunityId?: string;
+  }>();
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [selectedItem, setSelectedItem] = useState<MapItem | null>(null);
   const [loading, setLoading] = useState(true);
@@ -49,18 +56,33 @@ const Map = () => {
     "all" | "studySpots" | "workshops" | "events"
   >("all");
 
+  // Get organization name with fallbacks
+  const getOrganizationName = (opp: any): string =>
+    opp?.organizationProfile?.name ??
+    opp?.organizationName ??
+    opp?.organization?.name ??
+    "Organization";
+
   const loadMapData = useCallback(async () => {
     try {
       setLoading(true);
       const opps = await getAllOpportunitiesWithLocations();
       setOpportunities(opps);
       console.log("📍 Map loaded:", opps.length, "opportunities");
+
+      // If navigated from opportunity details, center on specific opportunity
+      if (centerLat && centerLng && opportunityId) {
+        const targetOpp = opps.find((opp) => opp.id === opportunityId);
+        if (targetOpp) {
+          setSelectedItem(targetOpp);
+        }
+      }
     } catch (error) {
       console.error("Error loading map data:", error);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [centerLat, centerLng, opportunityId]);
 
   useEffect(() => {
     loadMapData();
@@ -71,7 +93,9 @@ const Map = () => {
     (opp) =>
       opp.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       opp.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      opp.organizationName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      getOrganizationName(opp)
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase()) ||
       opp.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -110,6 +134,13 @@ const Map = () => {
     },
     []
   );
+
+  const navigateToMapLocation = useCallback((opportunity: Opportunity) => {
+    // Store the opportunity data to show on map
+    setSelectedItem(opportunity);
+    // You could also use router params if needed
+    // router.push(`/studentPages/(tabs)/Map?lat=${opportunity.location.latitude}&lng=${opportunity.location.longitude}`);
+  }, []);
 
   return (
     <SafeAreaView className="flex-1 bg-[#4B1EB4]" edges={["top"]}>
@@ -242,11 +273,34 @@ const Map = () => {
           <MapView
             style={{ flex: 1 }}
             initialRegion={{
-              latitude: 9.3077,
-              longitude: 123.3054,
-              latitudeDelta: 0.1,
-              longitudeDelta: 0.1,
+              latitude: centerLat
+                ? parseFloat(centerLat)
+                : selectedItem?.location?.latitude || 9.3077,
+              longitude: centerLng
+                ? parseFloat(centerLng)
+                : selectedItem?.location?.longitude || 123.3054,
+              latitudeDelta:
+                (centerLat && centerLng) || selectedItem ? 0.01 : 0.1,
+              longitudeDelta:
+                (centerLat && centerLng) || selectedItem ? 0.01 : 0.1,
             }}
+            region={
+              centerLat && centerLng
+                ? {
+                    latitude: parseFloat(centerLat),
+                    longitude: parseFloat(centerLng),
+                    latitudeDelta: 0.01,
+                    longitudeDelta: 0.01,
+                  }
+                : selectedItem
+                ? {
+                    latitude: selectedItem.location.latitude,
+                    longitude: selectedItem.location.longitude,
+                    latitudeDelta: 0.01,
+                    longitudeDelta: 0.01,
+                  }
+                : undefined
+            }
           >
             {/* Opportunity Markers - Different colors per category */}
             {displayedOpportunities.map((opp) => {
@@ -430,6 +484,53 @@ const Map = () => {
                         </View>
                       )}
 
+                      {/* Map Preview - For Study Spots */}
+                      {opp.category === "Study Spot" && (
+                        <TouchableOpacity
+                          className="rounded-xl overflow-hidden mb-3"
+                          onPress={() => navigateToMapLocation(opp)}
+                          activeOpacity={0.8}
+                        >
+                          <View className="h-24 bg-gray-100">
+                            <MapView
+                              style={{ flex: 1 }}
+                              region={{
+                                latitude: opp.location.latitude,
+                                longitude: opp.location.longitude,
+                                latitudeDelta: 0.01,
+                                longitudeDelta: 0.01,
+                              }}
+                              scrollEnabled={false}
+                              zoomEnabled={false}
+                              pitchEnabled={false}
+                              rotateEnabled={false}
+                              moveOnMarkerPress={false}
+                            >
+                              <Marker
+                                coordinate={{
+                                  latitude: opp.location.latitude,
+                                  longitude: opp.location.longitude,
+                                }}
+                                pinColor="#10B981"
+                              />
+                            </MapView>
+                          </View>
+                          <View className="bg-[#D1FAE5] px-3 py-2 flex-row items-center justify-between">
+                            <View className="flex-row items-center">
+                              <Ionicons name="map" size={16} color="#10B981" />
+                              <Text className="ml-2 text-[#10B981] text-[12px] font-karla-bold">
+                                View on Map
+                              </Text>
+                            </View>
+                            <Ionicons
+                              name="chevron-forward"
+                              size={16}
+                              color="#10B981"
+                            />
+                          </View>
+                        </TouchableOpacity>
+                      )}
+
                       {/* Date Range - For Workshops/Events */}
                       {(opp.startDate || opp.endDate) && (
                         <View
@@ -470,7 +571,11 @@ const Map = () => {
                           color="#6B7280"
                         />
                         <Text className="ml-2 text-[#6B7280] text-[13px] font-karla">
-                          By {opp.organizationName}
+                          By{" "}
+                          {opp?.organizationProfile?.name ??
+                            opp?.organizationName ??
+                            opp?.organization?.name ??
+                            "Organization"}
                         </Text>
                       </View>
 
