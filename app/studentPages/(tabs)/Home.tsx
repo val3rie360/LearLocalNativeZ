@@ -196,23 +196,36 @@ const [showScrollTop, setShowScrollTop] = useState(false);
   };
 
   const getEarliestDeadline = (opportunity: any): Date => {
-    // Helper to parse milestone date strings reliably
-    const parseMilestoneDate = (dateStr: string) => {
-      // Try parsing with Date constructor
-      let parsed = new Date(dateStr);
-      if (!isNaN(parsed.getTime())) return parsed;
-
-      // Remove commas and extra spaces
-      const cleaned = dateStr.replace(/,/g, "").trim();
-      parsed = new Date(cleaned);
-      if (!isNaN(parsed.getTime())) return parsed;
-
-      // Try parsing only the first three letters of the month
-      const parts = cleaned.split(" ");
-      if (parts.length === 3) {
-        const shortMonth = parts[0].slice(0, 3);
-        parsed = new Date(`${shortMonth} ${parts[1]} ${parts[2]}`);
+    // Helper to parse milestone date (handles both Firestore Timestamps and date strings)
+    const parseMilestoneDate = (dateValue: any) => {
+      // Handle Firestore Timestamp objects
+      if (dateValue && typeof dateValue === 'object' && dateValue.toDate) {
+        return dateValue.toDate();
+      }
+      
+      // Handle date strings
+      if (typeof dateValue === 'string') {
+        // Try parsing with Date constructor
+        let parsed = new Date(dateValue);
         if (!isNaN(parsed.getTime())) return parsed;
+
+        // Remove commas and extra spaces
+        const cleaned = dateValue.replace(/,/g, "").trim();
+        parsed = new Date(cleaned);
+        if (!isNaN(parsed.getTime())) return parsed;
+
+        // Try parsing only the first three letters of the month
+        const parts = cleaned.split(" ");
+        if (parts.length === 3) {
+          const shortMonth = parts[0].slice(0, 3);
+          parsed = new Date(`${shortMonth} ${parts[1]} ${parts[2]}`);
+          if (!isNaN(parsed.getTime())) return parsed;
+        }
+      }
+      
+      // Handle Date objects
+      if (dateValue instanceof Date) {
+        return dateValue;
       }
 
       return null;
@@ -231,7 +244,10 @@ const [showScrollTop, setShowScrollTop] = useState(false);
       });
       const firstMilestone = sortedMilestones[0];
       const earliestDate = parseMilestoneDate(firstMilestone.date);
-      if (earliestDate && !isNaN(earliestDate.getTime())) return earliestDate;
+      if (earliestDate && !isNaN(earliestDate.getTime())) {
+        console.log(`📅 Earliest deadline for "${opportunity.title}": ${earliestDate.toLocaleDateString()}`);
+        return earliestDate;
+      }
     }
 
     // Check for deadline field
@@ -239,13 +255,18 @@ const [showScrollTop, setShowScrollTop] = useState(false);
       const deadline = opportunity.deadline.toDate
         ? opportunity.deadline.toDate()
         : new Date(opportunity.deadline);
-      if (!isNaN(deadline.getTime())) return deadline;
+      if (!isNaN(deadline.getTime())) {
+        console.log(`📅 Single deadline for "${opportunity.title}": ${deadline.toLocaleDateString()}`);
+        return deadline;
+      }
     }
 
     // Fallback to createdAt + 30 days if no deadline
     const fallback =
       opportunity.createdAt?.toDate?.() || new Date(opportunity.createdAt);
-    return new Date(fallback.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const fallbackDate = new Date(fallback.getTime() + 30 * 24 * 60 * 60 * 1000);
+    console.log(`📅 Fallback deadline for "${opportunity.title}": ${fallbackDate.toLocaleDateString()}`);
+    return fallbackDate;
   };
 
   // Filter opportunities by category (excluding resources from all categories)
