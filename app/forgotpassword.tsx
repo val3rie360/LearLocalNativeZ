@@ -78,7 +78,7 @@ export default function ForgotPassword() {
                 onPress={() => router.back()}
                 className="absolute top-12 left-6 z-10"
               >
-                <Feather name="arrow-left" size={24} color="#fff" />
+                <Feather name="arrow-left" size={2} color="#fff" />
               </TouchableOpacity>
               <Text className="text-white text-[33px] font-karla-bold mb-0">
                 Forgot Password?
