@@ -23,6 +23,7 @@ import {
   getBookmarkedOpportunities,
   getUpcomingDeadlines,
   removeOpportunityBookmark,
+  getOpportunityDetails,
 } from "../../../services/firestoreService";
 
 interface ProfileData {
@@ -162,6 +163,9 @@ const [showScrollTop, setShowScrollTop] = useState(false);
   const [bookmarkedOpportunities, setBookmarkedOpportunities] = useState<any[]>(
     []
   );
+  const [opportunityDeadlines, setOpportunityDeadlines] = useState<Map<string, Date>>(
+    new Map()
+  );
 
   // Get display name with fallbacks
   const getDisplayName = () => {
@@ -193,6 +197,38 @@ const [showScrollTop, setShowScrollTop] = useState(false);
         day: "numeric",
       })
       .toUpperCase();
+  };
+
+  // Fetch full opportunity data and get earliest deadline
+  const getEarliestDeadlineFromFullData = async (opportunity: any): Promise<Date> => {
+    try {
+      // If we already have dateMilestones in the preview data, use them
+      if (
+        opportunity.dateMilestones &&
+        Array.isArray(opportunity.dateMilestones) &&
+        opportunity.dateMilestones.length > 0
+      ) {
+        return getEarliestDeadline(opportunity);
+      }
+
+      // Fetch full opportunity data from specific collection
+      if (opportunity.specificCollection && opportunity.id) {
+        console.log(`🔍 Fetching full data for "${opportunity.title}" from ${opportunity.specificCollection}`);
+        const fullData = await getOpportunityDetails(opportunity.id, opportunity.specificCollection);
+        
+        if (fullData && fullData.dateMilestones && Array.isArray(fullData.dateMilestones)) {
+          console.log(`📅 Found ${fullData.dateMilestones.length} milestones for "${opportunity.title}"`);
+          return getEarliestDeadline(fullData);
+        }
+      }
+
+      // Fallback to preview data
+      return getEarliestDeadline(opportunity);
+    } catch (error) {
+      console.error(`❌ Error fetching full data for "${opportunity.title}":`, error);
+      // Fallback to preview data
+      return getEarliestDeadline(opportunity);
+    }
   };
 
   const getEarliestDeadline = (opportunity: any): Date => {
@@ -231,6 +267,7 @@ const [showScrollTop, setShowScrollTop] = useState(false);
       return null;
     };
 
+    // Check if we have dateMilestones in the preview data (this is unlikely)
     if (
       opportunity.dateMilestones &&
       Array.isArray(opportunity.dateMilestones) &&
@@ -250,7 +287,7 @@ const [showScrollTop, setShowScrollTop] = useState(false);
       }
     }
 
-    // Check for deadline field
+    // Check for deadline field in preview data
     if (opportunity.deadline) {
       const deadline = opportunity.deadline.toDate
         ? opportunity.deadline.toDate()
@@ -434,6 +471,9 @@ const [showScrollTop, setShowScrollTop] = useState(false);
       }
 
       setOpportunities(data);
+      
+      // Fetch deadlines for all opportunities
+      fetchOpportunityDeadlines(data);
     } catch (error) {
       console.error("Error fetching opportunities:", error);
       setOpportunities([]);
@@ -441,6 +481,33 @@ const [showScrollTop, setShowScrollTop] = useState(false);
       setLoading(false);
       setRefreshing(false);
     }
+  };
+
+  // Fetch deadlines for all opportunities
+  const fetchOpportunityDeadlines = async (opps: any[]) => {
+    const deadlineMap = new Map<string, Date>();
+    
+    // Process opportunities in batches to avoid overwhelming the system
+    const batchSize = 5;
+    for (let i = 0; i < opps.length; i += batchSize) {
+      const batch = opps.slice(i, i + batchSize);
+      const deadlinePromises = batch.map(async (op) => {
+        try {
+          const deadline = await getEarliestDeadlineFromFullData(op);
+          return { id: op.id, deadline };
+        } catch (error) {
+          console.error(`Error fetching deadline for ${op.id}:`, error);
+          return { id: op.id, deadline: getEarliestDeadline(op) };
+        }
+      });
+      
+      const results = await Promise.all(deadlinePromises);
+      results.forEach(({ id, deadline }) => {
+        deadlineMap.set(id, deadline);
+      });
+    }
+    
+    setOpportunityDeadlines(deadlineMap);
   };
 
   useEffect(() => {
@@ -721,7 +788,7 @@ const [showScrollTop, setShowScrollTop] = useState(false);
                 title={op.title}
                 postedBy={getOpportunityOrganizationName(op)}
                 posterVerified={isOpportunityOrganizationVerified(op)}
-                deadline={formatDate(getEarliestDeadline(op))}
+                deadline={formatDate(opportunityDeadlines.get(op.id) || getEarliestDeadline(op))}
                 amount={op.amount || "N/A"}
                 description={op.description}
                 tag={op.category}
