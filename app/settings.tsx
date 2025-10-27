@@ -7,17 +7,14 @@ import {
   Text,
   TouchableOpacity,
   View,
-  Switch,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../contexts/AuthContext";
-import { useTheme } from "../contexts/ThemeContext";
 import { logOut } from "../services/authServices";
 
 export default function Settings() {
   const router = useRouter();
   const { user, profileData } = useAuth();
-  const { isDark, theme, themeMode, setThemeMode, toggleTheme } = useTheme();
 
   console.log("🔧 Settings page loaded successfully!");
 
@@ -78,10 +75,10 @@ export default function Settings() {
   };
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: theme.background }} edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {/* Header */}
-        <View style={{ backgroundColor: theme.secondary }} className="px-6 py-4">
+        <View className="bg-[#4B1EB4] px-6 py-4">
           <View className="flex-row items-center">
             <TouchableOpacity
               onPress={() => router.back()}
@@ -90,7 +87,7 @@ export default function Settings() {
             >
               <Ionicons name="arrow-back" size={24} color="#fff" />
             </TouchableOpacity>
-            <Text style={{ color: theme.text }} className="text-[24px] font-karla-bold">
+            <Text style={{ color: "#4B1EB4" }} className="text-[24px] font-karla-bold">
               Settings
             </Text>
           </View>
@@ -146,35 +143,6 @@ export default function Settings() {
             </TouchableOpacity>
           </View>
 
-          {/* Preferences Section */}
-          <View className="bg-white rounded-2xl p-4 mb-6 shadow-sm">
-            <Text className="text-[18px] font-karla-bold text-[#18181B] mb-4">
-              Preferences
-            </Text>
-            
-
-            <View className="flex-row items-center justify-between py-3">
-              <View className="flex-row items-center">
-                <View className="w-10 h-10 bg-[#F3E8FF] rounded-lg items-center justify-center mr-3">
-                  <Ionicons name="moon" size={20} color="#7C3AED" />
-                </View>
-                <View>
-                  <Text style={{ color: theme.text }} className="text-[16px] font-karla-bold">
-                    Dark Mode
-                  </Text>
-                  <Text style={{ color: theme.textSecondary }} className="text-[14px] font-karla">
-                    {isDark ? "Switch to light theme" : "Switch to dark theme"}
-                  </Text>
-                </View>
-              </View>
-              <Switch
-                value={isDark}
-                onValueChange={toggleTheme}
-                trackColor={{ false: theme.border, true: theme.primary }}
-                thumbColor="#fff"
-              />
-            </View>
-          </View>
 
           {/* Support Section */}
           <View className="bg-white rounded-2xl p-4 mb-6 shadow-sm">
