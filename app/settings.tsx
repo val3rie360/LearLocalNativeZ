@@ -18,7 +18,6 @@ export default function Settings() {
   const router = useRouter();
   const { user, profileData } = useAuth();
   const { isDark, theme, themeMode, setThemeMode, toggleTheme } = useTheme();
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
   console.log("🔧 Settings page loaded successfully!");
 
@@ -153,29 +152,6 @@ export default function Settings() {
               Preferences
             </Text>
             
-            <View className="flex-row items-center justify-between py-3">
-              <View className="flex-row items-center">
-                <View className="w-10 h-10 bg-[#DCFCE7] rounded-lg items-center justify-center mr-3">
-                  <Ionicons name="notifications" size={20} color="#16A34A" />
-                </View>
-                <View>
-                  <Text className="text-[16px] font-karla-bold text-[#18181B]">
-                    Push Notifications
-                  </Text>
-                  <Text className="text-[14px] font-karla text-[#6B7280]">
-                    Receive notifications about opportunities
-                  </Text>
-                </View>
-              </View>
-              <Switch
-                value={notificationsEnabled}
-                onValueChange={setNotificationsEnabled}
-                trackColor={{ false: "#E5E7EB", true: "#7D7CFF" }}
-                thumbColor={notificationsEnabled ? "#fff" : "#fff"}
-              />
-            </View>
-
-            <View className="h-px bg-[#E5E7EB] my-2" />
 
             <View className="flex-row items-center justify-between py-3">
               <View className="flex-row items-center">
