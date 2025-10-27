@@ -216,6 +216,13 @@ const OrgCreate = () => {
   const handleCategorySelect = (selectedCategory: string) => {
     setCategory(selectedCategory);
     setShowCategoryModal(false);
+    
+    // Reset category-specific state when switching categories
+    setIsInPersonWorkshop(false);
+    setWorkshopLocation(null);
+    setIsInPersonEvent(false);
+    setEventLocation(null);
+    setLocation(null);
   };
 
   const formatTime = (date: Date) => {
