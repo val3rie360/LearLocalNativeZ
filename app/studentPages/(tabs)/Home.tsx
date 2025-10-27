@@ -199,71 +199,168 @@ const [showScrollTop, setShowScrollTop] = useState(false);
       .toUpperCase();
   };
 
+  // Map category names to collection names (same as in firestoreService)
+  const getCollectionNameForCategory = (category: string): string => {
+    const categoryMap: { [key: string]: string } = {
+      "Scholarship / Grant": "scholarships",
+      "Competition / Event": "competitions", 
+      "Workshop / Seminar": "workshops",
+      Resources: "resources",
+      "Study Spot": "studySpots",
+    };
+    return categoryMap[category] || "opportunities";
+  };
+
   // Fetch full opportunity data and get earliest deadline
   const getEarliestDeadlineFromFullData = async (opportunity: any): Promise<Date> => {
     try {
+      console.log(`🔍 getEarliestDeadlineFromFullData called for "${opportunity.title}"`);
+      console.log(`  - ID: ${opportunity.id}`);
+      console.log(`  - Category: ${opportunity.category}`);
+      console.log(`  - Specific Collection: ${opportunity.specificCollection}`);
+      
+      // Determine the correct collection based on category
+      const category = opportunity.category || opportunity.specificCollection;
+      const targetCollection = getCollectionNameForCategory(category);
+      
+      console.log(`  - Target Collection: ${targetCollection}`);
+      
       // If we already have dateMilestones in the preview data, use them
       if (
         opportunity.dateMilestones &&
         Array.isArray(opportunity.dateMilestones) &&
         opportunity.dateMilestones.length > 0
       ) {
+        console.log(`  ✅ Using dateMilestones from preview data (${opportunity.dateMilestones.length} milestones)`);
         return getEarliestDeadline(opportunity);
       }
 
-      // Fetch full opportunity data from specific collection
-      if (opportunity.specificCollection && opportunity.id) {
-        console.log(`🔍 Fetching full data for "${opportunity.title}" from ${opportunity.specificCollection}`);
-        const fullData = await getOpportunityDetails(opportunity.id, opportunity.specificCollection);
+      // Fetch full opportunity data from the correct category collection
+      if (targetCollection && opportunity.id && targetCollection !== "opportunities") {
+        console.log(`  🔄 Fetching full data from ${targetCollection}...`);
+        const fullData = await getOpportunityDetails(opportunity.id, targetCollection);
         
-        if (fullData && fullData.dateMilestones && Array.isArray(fullData.dateMilestones)) {
-          console.log(`📅 Found ${fullData.dateMilestones.length} milestones for "${opportunity.title}"`);
-          return getEarliestDeadline(fullData);
+        if (fullData) {
+          console.log(`  ✅ Full data fetched successfully`);
+          console.log(`  - Has dateMilestones: ${!!(fullData as any).dateMilestones}`);
+          console.log(`  - DateMilestones count: ${(fullData as any).dateMilestones?.length || 0}`);
+          
+          if ((fullData as any).dateMilestones && Array.isArray((fullData as any).dateMilestones)) {
+            console.log(`  📅 Found ${(fullData as any).dateMilestones.length} milestones for "${opportunity.title}"`);
+            const deadline = getEarliestDeadline(fullData);
+            console.log(`  📅 Earliest deadline: ${deadline.toLocaleDateString()}`);
+            return deadline;
+          } else {
+            console.log(`  ⚠️ No dateMilestones found in full data`);
+          }
+        } else {
+          console.log(`  ❌ Failed to fetch full data`);
         }
+      } else {
+        console.log(`  ⚠️ Missing targetCollection, ID, or targetCollection is 'opportunities'`);
       }
 
       // Fallback to preview data
+      console.log(`  🔄 Falling back to preview data`);
       return getEarliestDeadline(opportunity);
     } catch (error) {
-      console.error(`❌ Error fetching full data for "${opportunity.title}":`, error);
+      console.error(`❌ Error in getEarliestDeadlineFromFullData for "${opportunity.title}":`, error);
       // Fallback to preview data
       return getEarliestDeadline(opportunity);
     }
   };
 
   const getEarliestDeadline = (opportunity: any): Date => {
+    console.log(`🔍 getEarliestDeadline called for "${opportunity.title}"`);
+    console.log(`  - Raw opportunity data:`, JSON.stringify(opportunity, null, 2));
+    
     // Helper to parse milestone date (handles both Firestore Timestamps and date strings)
     const parseMilestoneDate = (dateValue: any) => {
+      console.log(`    Parsing date value:`, dateValue, `(type: ${typeof dateValue})`);
+      
       // Handle Firestore Timestamp objects
       if (dateValue && typeof dateValue === 'object' && dateValue.toDate) {
-        return dateValue.toDate();
+        const parsed = dateValue.toDate();
+        console.log(`    ✅ Parsed Firestore Timestamp: ${parsed.toISOString()}`);
+        return parsed;
+      }
+      
+      // Handle Firestore Timestamp with seconds/nanoseconds
+      if (dateValue && typeof dateValue === 'object' && dateValue.seconds) {
+        const parsed = new Date(dateValue.seconds * 1000);
+        console.log(`    ✅ Parsed Firestore Timestamp (seconds): ${parsed.toISOString()}`);
+        return parsed;
+      }
+      
+      // Handle Date objects
+      if (dateValue instanceof Date) {
+        console.log(`    ✅ Using Date object: ${dateValue.toISOString()}`);
+        return dateValue;
       }
       
       // Handle date strings
       if (typeof dateValue === 'string') {
-        // Try parsing with Date constructor
+        // Try parsing with Date constructor first
         let parsed = new Date(dateValue);
-        if (!isNaN(parsed.getTime())) return parsed;
+        if (!isNaN(parsed.getTime())) {
+          console.log(`    ✅ Parsed date string: ${parsed.toISOString()}`);
+          return parsed;
+        }
 
         // Remove commas and extra spaces
         const cleaned = dateValue.replace(/,/g, "").trim();
         parsed = new Date(cleaned);
-        if (!isNaN(parsed.getTime())) return parsed;
+        if (!isNaN(parsed.getTime())) {
+          console.log(`    ✅ Parsed cleaned date string: ${parsed.toISOString()}`);
+          return parsed;
+        }
 
         // Try parsing only the first three letters of the month
         const parts = cleaned.split(" ");
         if (parts.length === 3) {
           const shortMonth = parts[0].slice(0, 3);
           parsed = new Date(`${shortMonth} ${parts[1]} ${parts[2]}`);
-          if (!isNaN(parsed.getTime())) return parsed;
+          if (!isNaN(parsed.getTime())) {
+            console.log(`    ✅ Parsed short month format: ${parsed.toISOString()}`);
+            return parsed;
+          }
         }
+        
+        // Try parsing common date formats
+        const dateFormats = [
+          // ISO format
+          dateValue,
+          // MM/DD/YYYY
+          dateValue.replace(/(\d{1,2})\/(\d{1,2})\/(\d{4})/, '$3-$1-$2'),
+          // DD/MM/YYYY  
+          dateValue.replace(/(\d{1,2})\/(\d{1,2})\/(\d{4})/, '$3-$2-$1'),
+          // Month DD, YYYY
+          dateValue.replace(/(\w+)\s+(\d{1,2}),?\s+(\d{4})/, '$1 $2, $3'),
+          // DD Month YYYY
+          dateValue.replace(/(\d{1,2})\s+(\w+)\s+(\d{4})/, '$2 $1, $3'),
+        ];
+        
+        for (const format of dateFormats) {
+          parsed = new Date(format);
+          if (!isNaN(parsed.getTime())) {
+            console.log(`    ✅ Parsed with format "${format}": ${parsed.toISOString()}`);
+            return parsed;
+          }
+        }
+        
+        console.log(`    ❌ Failed to parse date string: ${dateValue}`);
       }
       
-      // Handle Date objects
-      if (dateValue instanceof Date) {
-        return dateValue;
+      // Handle numeric timestamps
+      if (typeof dateValue === 'number') {
+        const parsed = new Date(dateValue);
+        if (!isNaN(parsed.getTime())) {
+          console.log(`    ✅ Parsed numeric timestamp: ${parsed.toISOString()}`);
+          return parsed;
+        }
       }
 
+      console.log(`    ❌ Unrecognized date format:`, dateValue);
       return null;
     };
 
@@ -273,22 +370,33 @@ const [showScrollTop, setShowScrollTop] = useState(false);
       Array.isArray(opportunity.dateMilestones) &&
       opportunity.dateMilestones.length > 0
     ) {
+      console.log(`  📅 Processing ${opportunity.dateMilestones.length} dateMilestones`);
+      
       // Sort milestones by parsed date, pick the earliest
-      const sortedMilestones = [...opportunity.dateMilestones].sort((a, b) => {
-        const dateA = parseMilestoneDate(a.date);
-        const dateB = parseMilestoneDate(b.date);
-        return (dateA?.getTime() ?? Infinity) - (dateB?.getTime() ?? Infinity);
-      });
-      const firstMilestone = sortedMilestones[0];
-      const earliestDate = parseMilestoneDate(firstMilestone.date);
-      if (earliestDate && !isNaN(earliestDate.getTime())) {
-        console.log(`📅 Earliest deadline for "${opportunity.title}": ${earliestDate.toLocaleDateString()}`);
-        return earliestDate;
+      const validMilestones = opportunity.dateMilestones
+        .map((milestone: any, index: number) => {
+          console.log(`    Milestone ${index + 1}:`, milestone);
+          const parsedDate = parseMilestoneDate(milestone.date);
+          return { milestone, parsedDate, index };
+        })
+        .filter(({ parsedDate }: { parsedDate: Date | null }) => parsedDate !== null);
+      
+      console.log(`  ✅ Found ${validMilestones.length} valid milestones out of ${opportunity.dateMilestones.length}`);
+      
+      if (validMilestones.length > 0) {
+        // Sort by date and get the earliest
+        validMilestones.sort((a: any, b: any) => a.parsedDate!.getTime() - b.parsedDate!.getTime());
+        const earliestMilestone = validMilestones[0];
+        console.log(`📅 Earliest deadline for "${opportunity.title}": ${earliestMilestone.parsedDate!.toLocaleDateString()}`);
+        return earliestMilestone.parsedDate!;
+      } else {
+        console.log(`  ⚠️ No valid milestones found after parsing`);
       }
     }
 
     // Check for deadline field in preview data
     if (opportunity.deadline) {
+      console.log(`  📅 Processing single deadline field`);
       const deadline = opportunity.deadline.toDate
         ? opportunity.deadline.toDate()
         : new Date(opportunity.deadline);
@@ -299,10 +407,12 @@ const [showScrollTop, setShowScrollTop] = useState(false);
     }
 
     // Fallback to createdAt + 30 days if no deadline
+    console.log(`  🔄 Using fallback deadline (createdAt + 30 days)`);
     const fallback =
       opportunity.createdAt?.toDate?.() || new Date(opportunity.createdAt);
     const fallbackDate = new Date(fallback.getTime() + 30 * 24 * 60 * 60 * 1000);
     console.log(`📅 Fallback deadline for "${opportunity.title}": ${fallbackDate.toLocaleDateString()}`);
+    console.log(`⚠️ WARNING: Using fallback deadline - this means no valid milestones were found!`);
     return fallbackDate;
   };
 
@@ -485,19 +595,26 @@ const [showScrollTop, setShowScrollTop] = useState(false);
 
   // Fetch deadlines for all opportunities
   const fetchOpportunityDeadlines = async (opps: any[]) => {
+    console.log(`🔄 Starting to fetch deadlines for ${opps.length} opportunities`);
     const deadlineMap = new Map<string, Date>();
     
     // Process opportunities in batches to avoid overwhelming the system
     const batchSize = 5;
     for (let i = 0; i < opps.length; i += batchSize) {
       const batch = opps.slice(i, i + batchSize);
+      console.log(`📦 Processing batch ${Math.floor(i/batchSize) + 1} with ${batch.length} opportunities`);
+      
       const deadlinePromises = batch.map(async (op) => {
         try {
+          console.log(`🔍 Fetching deadline for "${op.title}" (${op.id}) from ${op.specificCollection}`);
           const deadline = await getEarliestDeadlineFromFullData(op);
+          console.log(`✅ Got deadline for "${op.title}": ${deadline.toLocaleDateString()}`);
           return { id: op.id, deadline };
         } catch (error) {
-          console.error(`Error fetching deadline for ${op.id}:`, error);
-          return { id: op.id, deadline: getEarliestDeadline(op) };
+          console.error(`❌ Error fetching deadline for ${op.id}:`, error);
+          const fallbackDeadline = getEarliestDeadline(op);
+          console.log(`🔄 Using fallback deadline for "${op.title}": ${fallbackDeadline.toLocaleDateString()}`);
+          return { id: op.id, deadline: fallbackDeadline };
         }
       });
       
@@ -507,6 +624,7 @@ const [showScrollTop, setShowScrollTop] = useState(false);
       });
     }
     
+    console.log(`✅ Completed fetching deadlines for ${deadlineMap.size} opportunities`);
     setOpportunityDeadlines(deadlineMap);
   };
 
