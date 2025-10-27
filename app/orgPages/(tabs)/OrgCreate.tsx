@@ -221,6 +221,9 @@ const OrgCreate = () => {
     setShowCategoryModal(false);
     
     // Reset category-specific state when switching categories
+    setDateMilestones([]);
+    setNewMilestoneName("");
+    setNewMilestoneDate("");
     setIsInPersonWorkshop(false);
     setWorkshopLocation(null);
     setWorkshopDate("");
@@ -871,10 +874,11 @@ const OrgCreate = () => {
       return;
     }
 
-    // Validate milestones for Scholarship/Competition categories
+    // Validate milestones for Scholarship/Competition/Workshop categories
     if (
       category === "Scholarship / Grant" ||
-      category === "Competition / Event"
+      category === "Competition / Event" ||
+      category === "Workshop / Seminar"
     ) {
       if (dateMilestones.length === 0) {
         setErrorMessage(
@@ -991,6 +995,7 @@ const OrgCreate = () => {
         // Workshop specific fields
         opportunityData = {
           ...opportunityData,
+          ...(dateMilestones.length > 0 && { dateMilestones }),
           workshopDate: workshopDate,
           workshopStarts: workshopStarts,
           workshopEnds: workshopEnds,
@@ -1250,10 +1255,9 @@ const OrgCreate = () => {
               numberOfLines={4}
             />
 
-            {/* Date Milestones - Only show for scholarship and competition categories */}
+            {/* Date Milestones - Show for scholarship, competition, and workshop categories */}
             {category !== "Resources" &&
-              category !== "Study Spot" &&
-              category !== "Workshop / Seminar" && (
+              category !== "Study Spot" && (
                 <>
                   <Text className="text-sm text-black font-semibold mb-1">
                     Date Milestones *
