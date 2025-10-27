@@ -74,6 +74,42 @@ const Opportunity = () => {
     });
   };
 
+  // Format amount with Philippine Peso currency
+  const formatAmount = (amount: string) => {
+    if (!amount || amount === "N/A") return "N/A";
+    
+    // Remove any existing currency symbols and clean the amount
+    let cleanAmount = amount.replace(/[^\d.,]/g, '');
+    
+    // Handle different decimal separators (comma vs period)
+    if (cleanAmount.includes(',') && cleanAmount.includes('.')) {
+      // If both exist, assume comma is thousands separator and period is decimal
+      cleanAmount = cleanAmount.replace(/,/g, '');
+    } else if (cleanAmount.includes(',') && !cleanAmount.includes('.')) {
+      // If only comma exists, check if it's decimal or thousands separator
+      const parts = cleanAmount.split(',');
+      if (parts.length === 2 && parts[1].length <= 2) {
+        // Likely decimal separator
+        cleanAmount = cleanAmount.replace(',', '.');
+      } else {
+        // Likely thousands separator
+        cleanAmount = cleanAmount.replace(/,/g, '');
+      }
+    }
+    
+    // Convert to number and format with commas
+    const numAmount = parseFloat(cleanAmount);
+    if (isNaN(numAmount)) return "N/A";
+    
+    // Format with commas and handle decimals
+    const formatted = numAmount.toLocaleString('en-US', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2
+    });
+    
+    return `Php ${formatted}`;
+  };
+
   const handleRegister = async () => {
     const rawLink = opportunity?.link?.trim();
     if (!rawLink) {
@@ -104,25 +140,25 @@ const Opportunity = () => {
     await Linking.openURL(normalizedLink);
   };
 
-  const handleMemorandumDownload = async () => {
+  const handleMemorandumView = async () => {
     if (!opportunity?.memorandumCloudinaryId) {
       Alert.alert("Error", "Memorandum not available.");
       return;
     }
 
     try {
-      const downloadUrl = await getDownloadUrl(opportunity.memorandumCloudinaryId);
-      const canOpen = await Linking.canOpenURL(downloadUrl);
+      const viewUrl = await getDownloadUrl(opportunity.memorandumCloudinaryId);
+      const canOpen = await Linking.canOpenURL(viewUrl);
       
       if (!canOpen) {
         Alert.alert("Error", "Cannot open the memorandum.");
         return;
       }
       
-      await Linking.openURL(downloadUrl);
+      await Linking.openURL(viewUrl);
     } catch (error) {
-      console.error("Error downloading memorandum:", error);
-      Alert.alert("Error", "Failed to download memorandum.");
+      console.error("Error viewing memorandum:", error);
+      Alert.alert("Error", "Failed to open memorandum.");
     }
   };
 
@@ -193,6 +229,64 @@ const Opportunity = () => {
         <Text className="text-[#666] text-center font-karla mt-4">
           {error || "Opportunity not found"}
         </Text>
+      </SafeAreaView>
+    );
+  }
+
+  // Handle loading state
+  if (loading) {
+    return (
+      <SafeAreaView className="flex-1 bg-[#F6F4FE]" edges={["top", "bottom"]}>
+        <View className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color="#4B1EB4" />
+          <Text className="text-[#666] mt-4 font-karla">Loading opportunity...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Handle error state
+  if (error) {
+    return (
+      <SafeAreaView className="flex-1 bg-[#F6F4FE]" edges={["top", "bottom"]}>
+        <View className="flex-1 justify-center items-center px-6">
+          <Ionicons name="alert-circle-outline" size={64} color="#EF4444" />
+          <Text className="text-[#EF4444] font-karla-bold text-[20px] mt-4 text-center">
+            Error Loading Opportunity
+          </Text>
+          <Text className="text-[#666] font-karla text-center mt-2 mb-6">
+            {error}
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            className="bg-[#4B1EB4] px-6 py-3 rounded-full"
+          >
+            <Text className="text-white font-karla-bold">Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Handle opportunity not found
+  if (!opportunity) {
+    return (
+      <SafeAreaView className="flex-1 bg-[#F6F4FE]" edges={["top", "bottom"]}>
+        <View className="flex-1 justify-center items-center px-6">
+          <Ionicons name="document-outline" size={64} color="#9CA3AF" />
+          <Text className="text-[#374151] font-karla-bold text-[20px] mt-4 text-center">
+            Opportunity Not Found
+          </Text>
+          <Text className="text-[#6B7280] font-karla text-center mt-2 mb-6">
+            This opportunity may have been removed or is no longer available.
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            className="bg-[#4B1EB4] px-6 py-3 rounded-full"
+          >
+            <Text className="text-white font-karla-bold">Go Back</Text>
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
     );
   }
@@ -268,7 +362,7 @@ const Opportunity = () => {
                 style={{ elevation: 2 }}
               >
                 <Text className="font-karla-bold text-[#18181B] text-[13px] mb-1">
-                  {opportunity.amount}
+                  {formatAmount(opportunity.amount)}
                 </Text>
                 <Text className="text-[#6B7280] text-[11px] font-karla">
                   Amount
@@ -362,7 +456,7 @@ const Opportunity = () => {
               </Text>
               <TouchableOpacity
                 className="bg-[#F0EDFF] rounded-xl p-4 flex-row items-center justify-between"
-                onPress={handleMemorandumDownload}
+                onPress={handleMemorandumView}
                 activeOpacity={0.7}
               >
                 <View className="flex-row items-center flex-1">
@@ -374,11 +468,11 @@ const Opportunity = () => {
                       {opportunity.memorandumFile?.name || "Official Memorandum"}
                     </Text>
                     <Text className="text-[#6B7280] text-[12px] font-karla">
-                      Tap to view or download
+                      Tap to view
                     </Text>
                   </View>
                 </View>
-                <Ionicons name="download-outline" size={20} color="#4B1EB4" />
+                <Ionicons name="eye-outline" size={20} color="#4B1EB4" />
               </TouchableOpacity>
             </View>
           )}
