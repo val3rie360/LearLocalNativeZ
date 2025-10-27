@@ -100,9 +100,12 @@ const Calendar = () => {
       .toUpperCase();
   };
 
-  // Format date for calendar marking (YYYY-MM-DD)
+  // Format date for calendar marking (YYYY-MM-DD) - LOCAL TIMEZONE VERSION
   const formatDateForCalendar = (date: Date): string => {
-    return date.toISOString().slice(0, 10);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
   // Calculate days until deadline
