@@ -184,6 +184,9 @@ const OrgCreate = () => {
   const [showWorkshopMapModal, setShowWorkshopMapModal] = useState(false);
 
   // Workshop/Seminar specific fields
+  const [workshopDate, setWorkshopDate] = useState("");
+  const [workshopDateObj, setWorkshopDateObj] = useState(new Date());
+  const [showWorkshopDatePicker, setShowWorkshopDatePicker] = useState(false);
   const [workshopStarts, setWorkshopStarts] = useState("");
   const [workshopEnds, setWorkshopEnds] = useState("");
   const [workshopStartsDate, setWorkshopStartsDate] = useState(new Date());
@@ -220,6 +223,9 @@ const OrgCreate = () => {
     // Reset category-specific state when switching categories
     setIsInPersonWorkshop(false);
     setWorkshopLocation(null);
+    setWorkshopDate("");
+    setWorkshopStarts("");
+    setWorkshopEnds("");
     setIsInPersonEvent(false);
     setEventLocation(null);
     setLocation(null);
@@ -304,6 +310,37 @@ const OrgCreate = () => {
   const confirmWorkshopEnds = () => {
     setWorkshopEnds(formatTime(workshopEndsDate));
     setShowWorkshopEndsPicker(false);
+  };
+
+  // Workshop date picker handlers
+  const handleWorkshopDateChange = (event: any, selectedDate?: Date) => {
+    console.log("Workshop date change:", event.type, selectedDate);
+
+    if (Platform.OS === "android") {
+      setShowWorkshopDatePicker(false);
+    }
+
+    if (selectedDate) {
+      setWorkshopDateObj(selectedDate);
+      setWorkshopDate(
+        selectedDate.toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        })
+      );
+    }
+  };
+
+  const confirmWorkshopDate = () => {
+    setWorkshopDate(
+      workshopDateObj.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      })
+    );
+    setShowWorkshopDatePicker(false);
   };
 
   // Day selection handlers
@@ -954,6 +991,7 @@ const OrgCreate = () => {
         // Workshop specific fields
         opportunityData = {
           ...opportunityData,
+          workshopDate: workshopDate,
           workshopStarts: workshopStarts,
           workshopEnds: workshopEnds,
           repeats,
@@ -1445,6 +1483,27 @@ const OrgCreate = () => {
                 <Text className="text-sm text-black font-semibold mb-1">
                   Workshop Schedule
                 </Text>
+                
+                {/* Workshop Date */}
+                <View className="mb-3">
+                  <Text className="text-xs text-gray-600 mb-1">Date</Text>
+                  <TouchableOpacity
+                    className="bg-white rounded-xl px-3 h-11 justify-center border border-gray-200"
+                    onPress={() => {
+                      console.log("Opening workshop date picker");
+                      setShowWorkshopDatePicker(true);
+                    }}
+                  >
+                    <Text
+                      className={`text-base ${
+                        workshopDate ? "text-black" : "text-gray-500"
+                      }`}
+                    >
+                      {workshopDate || "Select workshop date"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
                 <View className="flex-row space-x-3 mb-3">
                   <View className="flex-1">
                     <Text className="text-xs text-gray-600 mb-1">
@@ -2026,6 +2085,68 @@ const OrgCreate = () => {
                   is24Hour={false}
                   display="default"
                   onChange={handleCloseTimeChange}
+                  textColor="#333333"
+                  accentColor="#a084e8"
+                />
+              )}
+            </>
+          )}
+
+          {/* Workshop Date Picker */}
+          {showWorkshopDatePicker && (
+            <>
+              {Platform.OS === "ios" ? (
+                <Modal
+                  visible={showWorkshopDatePicker}
+                  transparent={true}
+                  animationType="slide"
+                  onRequestClose={() => setShowWorkshopDatePicker(false)}
+                >
+                  <View className="flex-1 bg-black/50 justify-end">
+                    <View className="bg-white rounded-t-3xl p-6">
+                      <Text className="text-lg font-bold text-[#a084e8] mb-4 text-center">
+                        Select Workshop Date
+                      </Text>
+                      <View className="bg-gray-50 rounded-xl p-2 border border-gray-200">
+                        <DateTimePicker
+                          value={workshopDateObj}
+                          mode="date"
+                          display="spinner"
+                          onChange={handleWorkshopDateChange}
+                          style={{
+                            backgroundColor: "transparent",
+                          }}
+                          textColor="#333333"
+                          accentColor="#a084e8"
+                        />
+                      </View>
+                      <View className="flex-row space-x-3 mt-4">
+                        <TouchableOpacity
+                          className="flex-1 bg-gray-200 rounded-xl py-3"
+                          onPress={() => setShowWorkshopDatePicker(false)}
+                        >
+                          <Text className="text-center text-base text-gray-600">
+                            Cancel
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          className="flex-1 bg-[#a084e8] rounded-xl py-3"
+                          onPress={confirmWorkshopDate}
+                        >
+                          <Text className="text-center text-base text-white font-bold">
+                            Confirm
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </View>
+                </Modal>
+              ) : (
+                <DateTimePicker
+                  value={workshopDateObj}
+                  mode="date"
+                  display="default"
+                  onChange={handleWorkshopDateChange}
                   textColor="#333333"
                   accentColor="#a084e8"
                 />
