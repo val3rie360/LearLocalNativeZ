@@ -392,6 +392,87 @@ const Opportunity = () => {
               {opportunity.description || "No description available"}
             </Text>
 
+            {/* Workshop/Event Details Section */}
+            {(opportunity.category === "Workshop / Seminar" ||
+              opportunity.category === "Competition / Event") && (
+              <>
+                <Text className="font-karla-bold text-[16px] text-[#18181B] mb-2 mt-4">
+                  Event Details
+                </Text>
+                <View className="bg-[#EFF6FF] rounded-xl p-3 mb-3">
+                  {/* Workshop Date */}
+                  {opportunity.workshopDate && (
+                    <View className="flex-row items-center mb-3">
+                      <Ionicons name="calendar" size={18} color="#3B82F6" />
+                      <View className="ml-2 flex-1">
+                        <Text className="font-karla-bold text-[14px] text-[#3B82F6] mb-1">
+                          Date
+                        </Text>
+                        <Text className="text-[#18181B] text-[13px] font-karla">
+                          {opportunity.workshopDate}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Event Type (Online/In-Person) */}
+                  {(opportunity.isInPersonWorkshop !== undefined ||
+                    opportunity.isInPersonEvent !== undefined) && (
+                    <View className="flex-row items-center mb-3">
+                      <Ionicons name="globe" size={18} color="#3B82F6" />
+                      <View className="ml-2 flex-1">
+                        <Text className="font-karla-bold text-[14px] text-[#3B82F6] mb-1">
+                          Event Type
+                        </Text>
+                        <Text className="text-[#18181B] text-[13px] font-karla">
+                          {opportunity.isInPersonWorkshop ||
+                          opportunity.isInPersonEvent
+                            ? "🏢 In-Person"
+                            : "🌐 Online"}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Workshop Times */}
+                  {(opportunity.workshopStarts || opportunity.workshopEnds) && (
+                    <View className="flex-row items-center mb-2">
+                      <Ionicons name="time" size={18} color="#3B82F6" />
+                      <View className="ml-2 flex-1">
+                        <Text className="font-karla-bold text-[14px] text-[#3B82F6] mb-1">
+                          Schedule
+                        </Text>
+                        {opportunity.workshopStarts && opportunity.workshopEnds ? (
+                          <Text className="text-[#18181B] text-[13px] font-karla">
+                            {opportunity.workshopStarts} - {opportunity.workshopEnds}
+                          </Text>
+                        ) : (
+                          <Text className="text-[#18181B] text-[13px] font-karla">
+                            {opportunity.workshopStarts || opportunity.workshopEnds}
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Repeat Days */}
+                  {opportunity.repeats && opportunity.selectedDays?.length > 0 && (
+                    <View className="flex-row items-center mt-2">
+                      <Ionicons name="repeat" size={18} color="#3B82F6" />
+                      <View className="ml-2 flex-1">
+                        <Text className="font-karla-bold text-[14px] text-[#3B82F6] mb-1">
+                          Repeats
+                        </Text>
+                        <Text className="text-[#18181B] text-[13px] font-karla">
+                          {opportunity.selectedDays.join(", ")}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+                </View>
+              </>
+            )}
+
             {/* Availability Section - For Study Spots */}
             {opportunity.category === "Study Spot" && (
               <>
