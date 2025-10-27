@@ -26,6 +26,83 @@ import {
   getOpportunityDetails,
 } from "../../../services/firestoreService";
 
+// Import the parseFlexibleDate function (we'll need to export it from firestoreService)
+// For now, let's recreate it here to match the firestore service
+const parseFlexibleDate = (dateValue: any): Date | null => {
+  if (!dateValue) return null;
+  
+  // Already a Date object
+  if (dateValue instanceof Date) {
+    return isNaN(dateValue.getTime()) ? null : dateValue;
+  }
+  
+  // Firestore Timestamp
+  if (dateValue?.toDate && typeof dateValue.toDate === 'function') {
+    try {
+      return dateValue.toDate();
+    } catch (e) {
+      return null;
+    }
+  }
+  
+  // Unix timestamp (number)
+  if (typeof dateValue === 'number') {
+    const date = new Date(dateValue);
+    return isNaN(date.getTime()) ? null : date;
+  }
+  
+  // String parsing
+  if (typeof dateValue === 'string') {
+    // Try standard Date constructor first
+    let date = new Date(dateValue);
+    if (!isNaN(date.getTime())) {
+      return date;
+    }
+    
+    // Handle "Nov 18, 2025" or "November 18, 2025" format
+    const monthNames: { [key: string]: number } = {
+      'jan': 0, 'january': 0,
+      'feb': 1, 'february': 1,
+      'mar': 2, 'march': 2,
+      'apr': 3, 'april': 3,
+      'may': 4,
+      'jun': 5, 'june': 5,
+      'jul': 6, 'july': 6,
+      'aug': 7, 'august': 7,
+      'sep': 8, 'september': 8,
+      'oct': 9, 'october': 9,
+      'nov': 10, 'november': 10,
+      'dec': 11, 'december': 11
+    };
+    
+    // Match "Month DD, YYYY" format
+    const match = dateValue.match(/^(\w+)\s+(\d{1,2}),?\s+(\d{4})$/i);
+    if (match) {
+      const [, monthStr, day, year] = match;
+      const month = monthNames[monthStr.toLowerCase()];
+      
+      if (month !== undefined) {
+        date = new Date(parseInt(year), month, parseInt(day));
+        if (!isNaN(date.getTime())) {
+          return date;
+        }
+      }
+    }
+    
+    // Try ISO format "YYYY-MM-DD"
+    const isoMatch = dateValue.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (isoMatch) {
+      const [, year, month, day] = isoMatch;
+      date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      if (!isNaN(date.getTime())) {
+        return date;
+      }
+    }
+  }
+  
+  return null;
+};
+
 interface ProfileData {
   name?: string;
   email?: string;
@@ -272,147 +349,49 @@ const [showScrollTop, setShowScrollTop] = useState(false);
 
   const getEarliestDeadline = (opportunity: any): Date => {
     console.log(`🔍 getEarliestDeadline called for "${opportunity.title}"`);
-    console.log(`  - Raw opportunity data:`, JSON.stringify(opportunity, null, 2));
+    console.log(`  - Has dateMilestones: ${!!opportunity.dateMilestones}`);
+    console.log(`  - DateMilestones:`, opportunity.dateMilestones);
     
-    // Helper to parse milestone date (handles both Firestore Timestamps and date strings)
-    const parseMilestoneDate = (dateValue: any) => {
-      console.log(`    Parsing date value:`, dateValue, `(type: ${typeof dateValue})`);
-      
-      // Handle Firestore Timestamp objects
-      if (dateValue && typeof dateValue === 'object' && dateValue.toDate) {
-        const parsed = dateValue.toDate();
-        console.log(`    ✅ Parsed Firestore Timestamp: ${parsed.toISOString()}`);
-        return parsed;
-      }
-      
-      // Handle Firestore Timestamp with seconds/nanoseconds
-      if (dateValue && typeof dateValue === 'object' && dateValue.seconds) {
-        const parsed = new Date(dateValue.seconds * 1000);
-        console.log(`    ✅ Parsed Firestore Timestamp (seconds): ${parsed.toISOString()}`);
-        return parsed;
-      }
-      
-      // Handle Date objects
-      if (dateValue instanceof Date) {
-        console.log(`    ✅ Using Date object: ${dateValue.toISOString()}`);
-        return dateValue;
-      }
-      
-      // Handle date strings
-      if (typeof dateValue === 'string') {
-        // Try parsing with Date constructor first
-        let parsed = new Date(dateValue);
-        if (!isNaN(parsed.getTime())) {
-          console.log(`    ✅ Parsed date string: ${parsed.toISOString()}`);
-          return parsed;
-        }
-
-        // Remove commas and extra spaces
-        const cleaned = dateValue.replace(/,/g, "").trim();
-        parsed = new Date(cleaned);
-        if (!isNaN(parsed.getTime())) {
-          console.log(`    ✅ Parsed cleaned date string: ${parsed.toISOString()}`);
-          return parsed;
-        }
-
-        // Try parsing only the first three letters of the month
-        const parts = cleaned.split(" ");
-        if (parts.length === 3) {
-          const shortMonth = parts[0].slice(0, 3);
-          parsed = new Date(`${shortMonth} ${parts[1]} ${parts[2]}`);
-          if (!isNaN(parsed.getTime())) {
-            console.log(`    ✅ Parsed short month format: ${parsed.toISOString()}`);
-            return parsed;
-          }
-        }
-        
-        // Try parsing common date formats
-        const dateFormats = [
-          // ISO format
-          dateValue,
-          // MM/DD/YYYY
-          dateValue.replace(/(\d{1,2})\/(\d{1,2})\/(\d{4})/, '$3-$1-$2'),
-          // DD/MM/YYYY  
-          dateValue.replace(/(\d{1,2})\/(\d{1,2})\/(\d{4})/, '$3-$2-$1'),
-          // Month DD, YYYY
-          dateValue.replace(/(\w+)\s+(\d{1,2}),?\s+(\d{4})/, '$1 $2, $3'),
-          // DD Month YYYY
-          dateValue.replace(/(\d{1,2})\s+(\w+)\s+(\d{4})/, '$2 $1, $3'),
-        ];
-        
-        for (const format of dateFormats) {
-          parsed = new Date(format);
-          if (!isNaN(parsed.getTime())) {
-            console.log(`    ✅ Parsed with format "${format}": ${parsed.toISOString()}`);
-            return parsed;
-          }
-        }
-        
-        console.log(`    ❌ Failed to parse date string: ${dateValue}`);
-      }
-      
-      // Handle numeric timestamps
-      if (typeof dateValue === 'number') {
-        const parsed = new Date(dateValue);
-        if (!isNaN(parsed.getTime())) {
-          console.log(`    ✅ Parsed numeric timestamp: ${parsed.toISOString()}`);
-          return parsed;
-        }
-      }
-
-      console.log(`    ❌ Unrecognized date format:`, dateValue);
-      return null;
-    };
-
-    // Check if we have dateMilestones in the preview data (this is unlikely)
-    if (
-      opportunity.dateMilestones &&
-      Array.isArray(opportunity.dateMilestones) &&
-      opportunity.dateMilestones.length > 0
-    ) {
+    // Check if we have dateMilestones
+    if (opportunity.dateMilestones && Array.isArray(opportunity.dateMilestones) && opportunity.dateMilestones.length > 0) {
       console.log(`  📅 Processing ${opportunity.dateMilestones.length} dateMilestones`);
       
-      // Sort milestones by parsed date, pick the earliest
+      // Use the proven parseFlexibleDate function
       const validMilestones = opportunity.dateMilestones
-        .map((milestone: any, index: number) => {
-          console.log(`    Milestone ${index + 1}:`, milestone);
-          const parsedDate = parseMilestoneDate(milestone.date);
-          return { milestone, parsedDate, index };
+        .map((milestone: any) => {
+          console.log(`    Milestone:`, milestone);
+          const parsedDate = parseFlexibleDate(milestone.date);
+          console.log(`    Parsed date:`, parsedDate ? parsedDate.toISOString() : 'null');
+          return { milestone, parsedDate };
         })
         .filter(({ parsedDate }: { parsedDate: Date | null }) => parsedDate !== null);
       
-      console.log(`  ✅ Found ${validMilestones.length} valid milestones out of ${opportunity.dateMilestones.length}`);
+      console.log(`  ✅ Found ${validMilestones.length} valid milestones`);
       
       if (validMilestones.length > 0) {
         // Sort by date and get the earliest
         validMilestones.sort((a: any, b: any) => a.parsedDate!.getTime() - b.parsedDate!.getTime());
         const earliestMilestone = validMilestones[0];
-        console.log(`📅 Earliest deadline for "${opportunity.title}": ${earliestMilestone.parsedDate!.toLocaleDateString()}`);
+        console.log(`📅 Earliest deadline: ${earliestMilestone.parsedDate!.toLocaleDateString()}`);
         return earliestMilestone.parsedDate!;
-      } else {
-        console.log(`  ⚠️ No valid milestones found after parsing`);
       }
     }
-
-    // Check for deadline field in preview data
+    
+    // Check for single deadline field
     if (opportunity.deadline) {
       console.log(`  📅 Processing single deadline field`);
-      const deadline = opportunity.deadline.toDate
-        ? opportunity.deadline.toDate()
-        : new Date(opportunity.deadline);
-      if (!isNaN(deadline.getTime())) {
-        console.log(`📅 Single deadline for "${opportunity.title}": ${deadline.toLocaleDateString()}`);
+      const deadline = parseFlexibleDate(opportunity.deadline);
+      if (deadline) {
+        console.log(`📅 Single deadline: ${deadline.toLocaleDateString()}`);
         return deadline;
       }
     }
-
-    // Fallback to createdAt + 30 days if no deadline
-    console.log(`  🔄 Using fallback deadline (createdAt + 30 days)`);
-    const fallback =
-      opportunity.createdAt?.toDate?.() || new Date(opportunity.createdAt);
+    
+    // Fallback
+    console.log(`  🔄 Using fallback deadline`);
+    const fallback = opportunity.createdAt?.toDate?.() || new Date(opportunity.createdAt);
     const fallbackDate = new Date(fallback.getTime() + 30 * 24 * 60 * 60 * 1000);
-    console.log(`📅 Fallback deadline for "${opportunity.title}": ${fallbackDate.toLocaleDateString()}`);
-    console.log(`⚠️ WARNING: Using fallback deadline - this means no valid milestones were found!`);
+    console.log(`📅 Fallback deadline: ${fallbackDate.toLocaleDateString()}`);
     return fallbackDate;
   };
 
@@ -906,8 +885,8 @@ const [showScrollTop, setShowScrollTop] = useState(false);
                 title={op.title}
                 postedBy={getOpportunityOrganizationName(op)}
                 posterVerified={isOpportunityOrganizationVerified(op)}
-                deadline={formatDate(opportunityDeadlines.get(op.id) || getEarliestDeadline(op))}
-                amount={op.amount || "N/A"}
+                deadline={op.category === "Study Spot" ? undefined : formatDate(opportunityDeadlines.get(op.id) || getEarliestDeadline(op))}
+                amount={op.category === "Study Spot" ? undefined : (op.amount || "N/A")}
                 description={op.description}
                 tag={op.category}
                 bookmarked={isOpportunityBookmarked(
