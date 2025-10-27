@@ -830,8 +830,7 @@ const OrgCreate = () => {
     // Validate milestones for Scholarship/Competition categories
     if (
       category === "Scholarship / Grant" ||
-      category === "Competition / Event" ||
-      category === "Workshop / Seminar"
+      category === "Competition / Event"
     ) {
       if (dateMilestones.length === 0) {
         setErrorMessage(
@@ -1209,78 +1208,81 @@ const OrgCreate = () => {
             />
 
             {/* Date Milestones - Only show for scholarship and competition categories */}
-            {(category === "Scholarship / Grant" ||
-              category === "Competition / Event" ||
-              category === "Workshop / Seminar") && (
-              <>
-                <Text className="text-sm text-black font-semibold mb-1">
-                  Date Milestones *
-                </Text>
-                <Text className="text-xs text-gray-600 mb-2">
-                  Add at least one important date (e.g., Application Deadline,
-                  Event Start)
-                </Text>
+            {category !== "Resources" &&
+              category !== "Study Spot" &&
+              category !== "Workshop / Seminar" && (
+                <>
+                  <Text className="text-sm text-black font-semibold mb-1">
+                    Date Milestones *
+                  </Text>
+                  <Text className="text-xs text-gray-600 mb-2">
+                    Add at least one important date (e.g., Application Deadline,
+                    Winner Announcement)
+                  </Text>
 
-                {/* Display existing milestones */}
-                {dateMilestones.map((milestone, index) => (
-                  <View
-                    key={index}
-                    className="bg-white rounded-xl mb-2 px-3 py-2 flex-row items-center justify-between"
-                  >
-                    <View className="flex-1">
-                      <Text className="text-sm font-karla-bold text-[#4B1EB4]">
-                        {milestone.name}
-                      </Text>
-                      <Text className="text-xs text-gray-600">
-                        {milestone.date}
-                      </Text>
+                  {/* Display existing milestones */}
+                  {dateMilestones.map((milestone, index) => (
+                    <View
+                      key={index}
+                      className="bg-white rounded-xl mb-2 px-3 py-2 flex-row items-center justify-between"
+                    >
+                      <View className="flex-1">
+                        <Text className="text-sm font-karla-bold text-[#4B1EB4]">
+                          {milestone.name}
+                        </Text>
+                        <Text className="text-xs text-gray-600">
+                          {milestone.date}
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => removeMilestone(index)}
+                        className="ml-2 p-1"
+                      >
+                        <Text className="text-red-500 text-lg">×</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+
+                  {/* Add new milestone form */}
+                  <View className="bg-white rounded-xl mb-3 p-3">
+                    <View className="flex-row space-x-2 mb-2">
+                      <TextInput
+                        className="flex-1 bg-gray-50 rounded-lg px-3 h-10 text-base text-black"
+                        value={newMilestoneName}
+                        onChangeText={setNewMilestoneName}
+                        placeholder="Milestone name (e.g., Application Deadline)"
+                        placeholderTextColor="#aaa"
+                      />
+                      <TouchableOpacity
+                        className="flex-1 bg-gray-50 rounded-lg px-3 h-10 justify-center border border-gray-200"
+                        onPress={() => {
+                          console.log("Opening milestone date picker");
+                          setShowMilestoneDatePicker(true);
+                        }}
+                      >
+                        <Text
+                          className={`text-base ${
+                            newMilestoneDate ? "text-black" : "text-gray-500"
+                          }`}
+                        >
+                          {newMilestoneDate || "Select date"}
+                        </Text>
+                      </TouchableOpacity>
                     </View>
                     <TouchableOpacity
-                      onPress={() => removeMilestone(index)}
-                      className="ml-2 p-1"
+                      onPress={addMilestone}
+                      className="bg-[#a084e8] rounded-lg py-2 items-center"
+                      disabled={
+                        !newMilestoneName.trim() || !newMilestoneDate.trim()
+                      }
                     >
-                      <Text className="text-red-500 text-lg">×</Text>
-                    </TouchableOpacity>
-                  </View>
-                ))}
-
-                {/* Add new milestone form */}
-                <View className="bg-white rounded-xl mb-3 p-3">
-                  <View className="flex-row space-x-2 mb-2">
-                    <TextInput
-                      className="flex-1 bg-gray-50 rounded-lg px-3 h-10 text-base text-black"
-                      value={newMilestoneName}
-                      onChangeText={setNewMilestoneName}
-                      placeholder="Milestone name (e.g., Registration Opens)"
-                      placeholderTextColor="#aaa"
-                    />
-                    <TouchableOpacity
-                      className="flex-1 bg-gray-50 rounded-lg px-3 h-10 justify-center border border-gray-200"
-                      onPress={() => setShowMilestoneDatePicker(true)}
-                    >
-                      <Text
-                        className={`text-base ${
-                          newMilestoneDate ? "text-black" : "text-gray-500"
-                        }`}
-                      >
-                        {newMilestoneDate || "Select date"}
+                      <Text className="text-white text-sm font-karla-bold">
+                        Add Milestone
                       </Text>
                     </TouchableOpacity>
                   </View>
-                  <TouchableOpacity
-                    onPress={addMilestone}
-                    className="bg-[#a084e8] rounded-lg py-2 items-center"
-                    disabled={
-                      !newMilestoneName.trim() || !newMilestoneDate.trim()
-                    }
-                  >
-                    <Text className="text-white text-sm font-karla-bold">
-                      Add Milestone
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </>
-            )}
+                </>
+              )}
 
             {/* Available Times - Show for Study Spot category */}
             {category === "Study Spot" && (
@@ -1570,8 +1572,7 @@ const OrgCreate = () => {
 
             {/* Official Memorandum Upload - Only show for scholarship and competition categories */}
             {(category === "Scholarship / Grant" ||
-              category === "Competition / Event" ||
-              category === "Workshop / Seminar") && (
+              category === "Competition / Event") && (
               <>
                 <Text className="text-sm text-black font-semibold mb-1">
                   Official Memorandum (Optional)
