@@ -2,10 +2,9 @@ import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Image, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { signUp } from "../../services/authServices";
-import { signInWithFacebook, signInWithGoogle } from "../../services/socialAuthServices";
 
 export default function StudentSignup() {
   const router = useRouter();
@@ -55,41 +54,15 @@ export default function StudentSignup() {
       router.replace("/studentPages/(tabs)/Home");
     } catch (error: any) {
       console.error("Error registering student:", error);
-      if (error.code === 'auth/email-already-in-use') {
-        setError("This email is already registered. Please use a different email or try logging in.");
-      } else if (error.code === 'auth/weak-password') {
+      if (error.code === "auth/email-already-in-use") {
+        setError(
+          "This email is already registered. Please use a different email or try logging in."
+        );
+      } else if (error.code === "auth/weak-password") {
         setError("Password is too weak. Please choose a stronger password.");
       } else {
         setError(`Registration failed: ${error.message}`);
       }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogleSignUp = async () => {
-    setError("");
-    setLoading(true);
-    try {
-      await signInWithGoogle();
-      router.replace("/studentPages/(tabs)/Home");
-    } catch (error) {
-      setError("Google sign-up failed. Please try again.");
-      console.error("Google signup error:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleFacebookSignUp = async () => {
-    setError("");
-    setLoading(true);
-    try {
-      await signInWithFacebook();
-      router.replace("/studentPages/(tabs)/Home");
-    } catch (error) {
-      setError("Facebook sign-up failed. Please try again.");
-      console.error("Facebook signup error:", error);
     } finally {
       setLoading(false);
     }
@@ -266,39 +239,6 @@ export default function StudentSignup() {
               {loading ? "Registering..." : "Register"}
             </Text>
           </TouchableOpacity>
-          {/* Or Divider */}
-          <View className="flex-row items-center mb-6">
-            <View className="flex-1 h-px bg-secondary" />
-            <Text className="mx-2 text-secondary font-karla text-sm">
-              Or continue with
-            </Text>
-            <View className="flex-1 h-px bg-secondary" />
-          </View>
-          {/* Social Buttons */}
-          <View className="flex-row justify-center mb-8">
-            <TouchableOpacity 
-              className="bg-white rounded-xl p-2 shadow mr-4"
-              onPress={handleFacebookSignUp}
-              disabled={loading}
-            >
-              <Image
-                source={require("../../assets/images/fb.png")}
-                className="w-8 h-8"
-                resizeMode="contain"
-              />
-            </TouchableOpacity>
-            <TouchableOpacity 
-              className="bg-white rounded-xl p-2 shadow"
-              onPress={handleGoogleSignUp}
-              disabled={loading}
-            >
-              <Image
-                source={require("../../assets/images/google.png")}
-                className="w-8 h-8"
-                resizeMode="contain"
-              />
-            </TouchableOpacity>
-          </View>
           {/* Sign In Link */}
           <View className="flex-row justify-center items-center mb-2">
             <Text className="text-secondary font-karla text-sm">
