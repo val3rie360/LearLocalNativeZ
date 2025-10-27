@@ -243,6 +243,8 @@ const [showScrollTop, setShowScrollTop] = useState(false);
   const [opportunityDeadlines, setOpportunityDeadlines] = useState<Map<string, Date>>(
     new Map()
   );
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
 
   // Get display name with fallbacks
   const getDisplayName = () => {
@@ -462,6 +464,8 @@ const [showScrollTop, setShowScrollTop] = useState(false);
 
   // Get filtered and sorted opportunities
   const getDisplayedOpportunities = () => {
+    let filteredOpportunities: any[] = [];
+
     // If "Saved" category is selected, show bookmarked opportunities
     if (selectedCategory === "saved") {
       console.log(
@@ -475,11 +479,30 @@ const [showScrollTop, setShowScrollTop] = useState(false);
           specificCollection: op.specificCollection
         })));
       }
-      return sortOpportunities(bookmarkedOpportunities);
+      filteredOpportunities = bookmarkedOpportunities;
+    } else {
+      filteredOpportunities = filterOpportunities(opportunities);
     }
 
-    const filtered = filterOpportunities(opportunities);
-    return sortOpportunities(filtered);
+    // Apply search filter if there's a search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filteredOpportunities = filteredOpportunities.filter((op) => {
+        const title = op.title?.toLowerCase() || "";
+        const description = op.description?.toLowerCase() || "";
+        const organizationName = getOpportunityOrganizationName(op).toLowerCase();
+        const category = op.category?.toLowerCase() || "";
+        
+        return (
+          title.includes(query) ||
+          description.includes(query) ||
+          organizationName.includes(query) ||
+          category.includes(query)
+        );
+      });
+    }
+
+    return sortOpportunities(filteredOpportunities);
   };
 
   // Fetch upcoming deadlines for registered opportunities
@@ -727,7 +750,20 @@ const [showScrollTop, setShowScrollTop] = useState(false);
               />
             </TouchableOpacity>
           </View>
-          <SearchBar />
+          <SearchBar 
+            value={searchQuery}
+            onChangeText={(text) => {
+              setSearchQuery(text);
+              setIsSearching(text.trim().length > 0);
+            }}
+            onFocus={() => setIsSearching(true)}
+            onBlur={() => setIsSearching(searchQuery.trim().length > 0)}
+            showClearButton={true}
+            onClear={() => {
+              setSearchQuery("");
+              setIsSearching(false);
+            }}
+          />
         </View>
         {/* Upcoming Deadlines */}
         <View className="mt-[-90px] px-5">
@@ -850,7 +886,10 @@ const [showScrollTop, setShowScrollTop] = useState(false);
                   {getDisplayedOpportunities().length === 1
                     ? "result"
                     : "results"}
-                  {selectedCategory !== "all" &&
+                  {isSearching && searchQuery.trim() && (
+                    ` for "${searchQuery.trim()}"`
+                  )}
+                  {!isSearching && selectedCategory !== "all" &&
                     ` in ${CATEGORIES.find((c) => c.value === selectedCategory)?.label}`}
                 </Text>
               )}
@@ -919,16 +958,20 @@ const [showScrollTop, setShowScrollTop] = useState(false);
                 color="#CCC"
               />
               <Text className="text-[#666] font-karla-bold text-[16px] mt-3">
-                {selectedCategory === "saved"
-                  ? "No saved opportunities"
-                  : "No opportunities found"}
+                {isSearching && searchQuery.trim()
+                  ? "No search results found"
+                  : selectedCategory === "saved"
+                    ? "No saved opportunities"
+                    : "No opportunities found"}
               </Text>
               <Text className="text-[#999] font-karla text-center mt-1">
-                {selectedCategory === "saved"
-                  ? "Bookmark opportunities to save them for later"
-                  : selectedCategory !== "all"
-                    ? `No ${CATEGORIES.find((c) => c.value === selectedCategory)?.label.toLowerCase()} available right now`
-                    : "Check back later for new opportunities"}
+                {isSearching && searchQuery.trim()
+                  ? `No opportunities match "${searchQuery.trim()}"`
+                  : selectedCategory === "saved"
+                    ? "Bookmark opportunities to save them for later"
+                    : selectedCategory !== "all"
+                      ? `No ${CATEGORIES.find((c) => c.value === selectedCategory)?.label.toLowerCase()} available right now`
+                      : "Check back later for new opportunities"}
               </Text>
               {selectedCategory !== "all" && selectedCategory !== "saved" && (
                 <TouchableOpacity
