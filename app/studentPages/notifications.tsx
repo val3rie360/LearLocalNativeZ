@@ -139,7 +139,7 @@ export default function Notifications() {
     
     // Navigate to opportunity
     router.push({
-      pathname: "../opportunity",
+      pathname: "./opportunity",
       params: {
         id: notification.opportunityId,
         specificCollection: notification.specificCollection || "scholarships",
