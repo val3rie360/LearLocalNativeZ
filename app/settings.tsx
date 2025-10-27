@@ -143,7 +143,6 @@ export default function Settings() {
             </TouchableOpacity>
           </View>
 
-
           {/* Support Section */}
           <View className="bg-white rounded-2xl p-4 mb-6 shadow-sm">
             <Text className="text-[18px] font-karla-bold text-[#18181B] mb-4">

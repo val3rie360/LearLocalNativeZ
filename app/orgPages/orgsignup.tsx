@@ -6,7 +6,6 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
-  Image,
   Text,
   TextInput,
   TouchableOpacity,
@@ -18,10 +17,6 @@ import {
   getUploadById,
   uploadPDF,
 } from "../../services/cloudinaryUploadService";
-import {
-  signInWithFacebook,
-  signInWithGoogle,
-} from "../../services/socialAuthServices";
 
 type UploadDocument = {
   cloudinaryPublicId?: string;
@@ -99,12 +94,12 @@ export default function OrgSignup() {
       if (!file.uri || !file.name || file.size === undefined) {
         throw new Error("Invalid file selected. Please try again.");
       }
-      
+
       // Check file size (50MB limit)
       if (file.size > 50 * 1024 * 1024) {
         throw new Error("File too large. Maximum size is 50MB.");
       }
-      
+
       // Check file type
       if (file.mimeType && file.mimeType !== "application/pdf") {
         throw new Error("Invalid file type. Only PDF files are allowed.");
@@ -173,7 +168,9 @@ export default function OrgSignup() {
       } else if (error.code === "auth/invalid-email") {
         setError("Invalid email address format.");
       } else if (error.message?.includes("400")) {
-        setError("Invalid request. Please check your verification file and try again.");
+        setError(
+          "Invalid request. Please check your verification file and try again."
+        );
       } else if (error.message?.includes("File upload failed")) {
         setError("Failed to upload verification file. Please try again.");
       } else if (error.message?.includes("Invalid file")) {
@@ -183,34 +180,6 @@ export default function OrgSignup() {
       } else {
         setError(`Registration failed: ${error.message}`);
       }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogleSignUp = async () => {
-    setError("");
-    setLoading(true);
-    try {
-      await signInWithGoogle();
-      router.replace("/orgPages/(tabs)/OrgHome");
-    } catch (error) {
-      setError("Google sign-up failed. Please try again.");
-      console.error("Google signup error:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleFacebookSignUp = async () => {
-    setError("");
-    setLoading(true);
-    try {
-      await signInWithFacebook();
-      router.replace("/orgPages/(tabs)/OrgHome");
-    } catch (error) {
-      setError("Facebook sign-up failed. Please try again.");
-      console.error("Facebook signup error:", error);
     } finally {
       setLoading(false);
     }
@@ -417,39 +386,6 @@ export default function OrgSignup() {
               {loading ? "Registering..." : "Register"}
             </Text>
           </TouchableOpacity>
-          {/* Or Divider */}
-          <View className="flex-row items-center mb-6">
-            <View className="flex-1 h-px bg-secondary" />
-            <Text className="mx-2 text-secondary font-karla text-sm">
-              Or continue with
-            </Text>
-            <View className="flex-1 h-px bg-secondary" />
-          </View>
-          {/* Social Buttons */}
-          <View className="flex-row justify-center mb-4">
-            <TouchableOpacity
-              className="bg-white rounded-xl p-2 shadow mr-4"
-              onPress={handleFacebookSignUp}
-              disabled={loading}
-            >
-              <Image
-                source={require("../../assets/images/fb.png")}
-                className="w-8 h-8"
-                resizeMode="contain"
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              className="bg-white rounded-xl p-2 shadow"
-              onPress={handleGoogleSignUp}
-              disabled={loading}
-            >
-              <Image
-                source={require("../../assets/images/google.png")}
-                className="w-8 h-8"
-                resizeMode="contain"
-              />
-            </TouchableOpacity>
-          </View>
           {/* Sign In Link */}
           <View className="flex-row justify-center items-center mb-2">
             <Text className="text-secondary font-karla text-sm">

@@ -2,23 +2,23 @@ import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Linking,
-    ScrollView,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Linking,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import MapView, { Marker } from "react-native-maps";
 import { useAuth } from "../../contexts/AuthContext";
 import { getDownloadUrl } from "../../services/cloudinaryUploadService";
 import {
-    getOpportunityDetails,
-    isRegisteredToOpportunity,
-    registerToOpportunity,
-    unregisterFromOpportunity,
+  getOpportunityDetails,
+  isRegisteredToOpportunity,
+  registerToOpportunity,
+  unregisterFromOpportunity,
 } from "../../services/firestoreService";
 
 const Opportunity = () => {
@@ -77,36 +77,36 @@ const Opportunity = () => {
   // Format amount with Philippine Peso currency
   const formatAmount = (amount: string) => {
     if (!amount || amount === "N/A") return "N/A";
-    
+
     // Remove any existing currency symbols and clean the amount
-    let cleanAmount = amount.replace(/[^\d.,]/g, '');
-    
+    let cleanAmount = amount.replace(/[^\d.,]/g, "");
+
     // Handle different decimal separators (comma vs period)
-    if (cleanAmount.includes(',') && cleanAmount.includes('.')) {
+    if (cleanAmount.includes(",") && cleanAmount.includes(".")) {
       // If both exist, assume comma is thousands separator and period is decimal
-      cleanAmount = cleanAmount.replace(/,/g, '');
-    } else if (cleanAmount.includes(',') && !cleanAmount.includes('.')) {
+      cleanAmount = cleanAmount.replace(/,/g, "");
+    } else if (cleanAmount.includes(",") && !cleanAmount.includes(".")) {
       // If only comma exists, check if it's decimal or thousands separator
-      const parts = cleanAmount.split(',');
+      const parts = cleanAmount.split(",");
       if (parts.length === 2 && parts[1].length <= 2) {
         // Likely decimal separator
-        cleanAmount = cleanAmount.replace(',', '.');
+        cleanAmount = cleanAmount.replace(",", ".");
       } else {
         // Likely thousands separator
-        cleanAmount = cleanAmount.replace(/,/g, '');
+        cleanAmount = cleanAmount.replace(/,/g, "");
       }
     }
-    
+
     // Convert to number and format with commas
     const numAmount = parseFloat(cleanAmount);
     if (isNaN(numAmount)) return "N/A";
-    
+
     // Format with commas and handle decimals
-    const formatted = numAmount.toLocaleString('en-US', {
+    const formatted = numAmount.toLocaleString("en-US", {
       minimumFractionDigits: 0,
-      maximumFractionDigits: 2
+      maximumFractionDigits: 2,
     });
-    
+
     return `Php ${formatted}`;
   };
 
@@ -122,7 +122,9 @@ const Opportunity = () => {
       try {
         await registerToOpportunity(user.uid, id, specificCollection);
         setIsRegistered(true);
-        console.log("✅ Deadline tracking automatically enabled on registration");
+        console.log(
+          "✅ Deadline tracking automatically enabled on registration"
+        );
       } catch (error) {
         console.error("Error auto-enabling tracking:", error);
         // Continue with registration even if tracking fails
@@ -149,12 +151,12 @@ const Opportunity = () => {
     try {
       const viewUrl = await getDownloadUrl(opportunity.memorandumCloudinaryId);
       const canOpen = await Linking.canOpenURL(viewUrl);
-      
+
       if (!canOpen) {
         Alert.alert("Error", "Cannot open the memorandum.");
         return;
       }
-      
+
       await Linking.openURL(viewUrl);
     } catch (error) {
       console.error("Error viewing memorandum:", error);
@@ -191,19 +193,15 @@ const Opportunity = () => {
         // Register for tracking
         await registerToOpportunity(user.uid, id, specificCollection);
         setIsRegistered(true);
-        
+
         // Navigate to Calendar tab after successful tracking
-        Alert.alert(
-          "Tracking Enabled",
-          "Deadlines added to your calendar!",
-          [
-            {
-              text: "View Calendar",
-              onPress: () => router.push("/studentPages/(tabs)/Calendar"),
-            },
-            { text: "Stay Here", style: "cancel" },
-          ]
-        );
+        Alert.alert("Tracking Enabled", "Deadlines added to your calendar!", [
+          {
+            text: "View Calendar",
+            onPress: () => router.push("/studentPages/(tabs)/Calendar"),
+          },
+          { text: "Stay Here", style: "cancel" },
+        ]);
       }
     } catch (error) {
       console.error("Error toggling tracking:", error);
@@ -239,7 +237,9 @@ const Opportunity = () => {
       <SafeAreaView className="flex-1 bg-[#F6F4FE]" edges={["top", "bottom"]}>
         <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color="#4B1EB4" />
-          <Text className="text-[#666] mt-4 font-karla">Loading opportunity...</Text>
+          <Text className="text-[#666] mt-4 font-karla">
+            Loading opportunity...
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -295,6 +295,15 @@ const Opportunity = () => {
     <SafeAreaView className="flex-1 bg-[#F6F4FE]" edges={["top", "bottom"]}>
       {/* Header */}
       <View className="bg-[#4B1EB4] rounded-b-2xl pb-7 pt-12 px-5">
+        {/* Back Arrow */}
+        <TouchableOpacity
+          onPress={() => router.back()}
+          className="mb-3"
+          activeOpacity={0.7}
+        >
+          <Ionicons name="arrow-back" size={28} color="#fff" />
+        </TouchableOpacity>
+
         <Text className="text-white font-karla-bold text-[28px] leading-tight mb-3">
           {opportunity.title}
         </Text>
@@ -332,7 +341,7 @@ const Opportunity = () => {
         <View className="flex-row items-center mb-1">
           <Ionicons name="calendar-outline" size={16} color="#fff" />
           <Text className="ml-2 text-white text-[15px] font-karla">
-            <Text className="font-karla-bold">Date:</Text>{" "}
+            <Text className="font-karla-bold">Posted on:</Text>{" "}
             {formatDate(opportunity.createdAt)}
           </Text>
         </View>
@@ -465,7 +474,8 @@ const Opportunity = () => {
                   </View>
                   <View className="flex-1">
                     <Text className="font-karla-bold text-[14px] text-[#18181B] mb-1">
-                      {opportunity.memorandumFile?.name || "Official Memorandum"}
+                      {opportunity.memorandumFile?.name ||
+                        "Official Memorandum"}
                     </Text>
                     <Text className="text-[#6B7280] text-[12px] font-karla">
                       Tap to view
@@ -481,7 +491,7 @@ const Opportunity = () => {
           <View className="items-center mb-4 gap-3">
             {/* Map Preview - For Study Spots */}
             {opportunity.category === "Study Spot" && opportunity.location && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 className="w-full max-w-[300px] mb-3"
                 onPress={() => {
                   // Navigate to Map.tsx with the study spot centered
@@ -491,7 +501,7 @@ const Opportunity = () => {
                       centerLat: opportunity.location.latitude.toString(),
                       centerLng: opportunity.location.longitude.toString(),
                       opportunityId: opportunity.id,
-                    }
+                    },
                   });
                 }}
                 activeOpacity={0.8}
@@ -533,7 +543,11 @@ const Opportunity = () => {
                         Tap to view on Map
                       </Text>
                     </View>
-                    <Ionicons name="chevron-forward" size={16} color="#10B981" />
+                    <Ionicons
+                      name="chevron-forward"
+                      size={16}
+                      color="#10B981"
+                    />
                   </View>
                 </View>
               </TouchableOpacity>
@@ -552,7 +566,10 @@ const Opportunity = () => {
                 onPress={handleToggleTracking}
               >
                 {isTrackingLoading ? (
-                  <ActivityIndicator size="small" color={isRegistered ? "#4B1EB4" : "#fff"} />
+                  <ActivityIndicator
+                    size="small"
+                    color={isRegistered ? "#4B1EB4" : "#fff"}
+                  />
                 ) : (
                   <>
                     <Ionicons
@@ -576,7 +593,9 @@ const Opportunity = () => {
             {/* Register Now Button - Only for non-Study Spot opportunities */}
             {opportunity.category !== "Study Spot" && (
               <TouchableOpacity
-                className={`bg-white border-2 border-[#4B1EB4] rounded-full py-3 px-8 items-center w-full max-w-[300px] ${!opportunity.link ? "opacity-50" : ""}`}
+                className={`bg-white border-2 border-[#4B1EB4] rounded-full py-3 px-8 items-center w-full max-w-[300px] ${
+                  !opportunity.link ? "opacity-50" : ""
+                }`}
                 activeOpacity={0.8}
                 disabled={!opportunity.link}
                 onPress={handleRegister}

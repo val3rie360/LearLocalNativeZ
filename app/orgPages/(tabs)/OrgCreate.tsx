@@ -122,17 +122,21 @@ const OrgCreate = () => {
   const [availabilityEndHour, setAvailabilityEndHour] = useState("");
   const [showTimeDropdown, setShowTimeDropdown] = useState(false);
   const [showEndTimeDropdown, setShowEndTimeDropdown] = useState(false);
-  
+
   // Address search states
   const [addressSearch, setAddressSearch] = useState("");
   const [eventAddressSearch, setEventAddressSearch] = useState("");
   const [workshopAddressSearch, setWorkshopAddressSearch] = useState("");
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
-  const [showEventAddressSuggestions, setShowEventAddressSuggestions] = useState(false);
-  const [showWorkshopAddressSuggestions, setShowWorkshopAddressSuggestions] = useState(false);
+  const [showEventAddressSuggestions, setShowEventAddressSuggestions] =
+    useState(false);
+  const [showWorkshopAddressSuggestions, setShowWorkshopAddressSuggestions] =
+    useState(false);
   const [addressSuggestions, setAddressSuggestions] = useState([]);
   const [eventAddressSuggestions, setEventAddressSuggestions] = useState([]);
-  const [workshopAddressSuggestions, setWorkshopAddressSuggestions] = useState([]);
+  const [workshopAddressSuggestions, setWorkshopAddressSuggestions] = useState(
+    []
+  );
   const hourOptions = [
     "6:00 AM",
     "7:00 AM",
@@ -154,10 +158,11 @@ const OrgCreate = () => {
   ];
   const [studySpotDetails, setStudySpotDetails] = useState("");
   const [link, setLink] = useState("");
-  
+
   // Competition/Event specific fields
   const [isInPersonEvent, setIsInPersonEvent] = useState(false);
-  const [eventLocation, setEventLocation] = useState<Location.LocationObject | null>(null);
+  const [eventLocation, setEventLocation] =
+    useState<Location.LocationObject | null>(null);
   const [eventMapRegion, setEventMapRegion] = useState({
     latitude: 9.3077,
     longitude: 123.3054,
@@ -168,7 +173,8 @@ const OrgCreate = () => {
 
   // Workshop/Seminar specific fields
   const [isInPersonWorkshop, setIsInPersonWorkshop] = useState(false);
-  const [workshopLocation, setWorkshopLocation] = useState<Location.LocationObject | null>(null);
+  const [workshopLocation, setWorkshopLocation] =
+    useState<Location.LocationObject | null>(null);
   const [workshopMapRegion, setWorkshopMapRegion] = useState({
     latitude: 9.3077,
     longitude: 123.3054,
@@ -442,15 +448,18 @@ const OrgCreate = () => {
   };
 
   // Address search functions
-  const searchAddress = async (query: string, type: 'study' | 'event' | 'workshop') => {
+  const searchAddress = async (
+    query: string,
+    type: "study" | "event" | "workshop"
+  ) => {
     if (query.length < 3) {
-      if (type === 'study') {
+      if (type === "study") {
         setAddressSuggestions([]);
         setShowAddressSuggestions(false);
-      } else if (type === 'event') {
+      } else if (type === "event") {
         setEventAddressSuggestions([]);
         setShowEventAddressSuggestions(false);
-      } else if (type === 'workshop') {
+      } else if (type === "workshop") {
         setWorkshopAddressSuggestions([]);
         setShowWorkshopAddressSuggestions(false);
       }
@@ -460,35 +469,41 @@ const OrgCreate = () => {
     try {
       // Using Google Places API for address suggestions
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(query)}&key=${process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}&types=address`
+        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
+          query
+        )}&key=${process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}&types=address`
       );
       const data = await response.json();
-      
+
       if (data.predictions) {
-        if (type === 'study') {
+        if (type === "study") {
           setAddressSuggestions(data.predictions);
           setShowAddressSuggestions(true);
-        } else if (type === 'event') {
+        } else if (type === "event") {
           setEventAddressSuggestions(data.predictions);
           setShowEventAddressSuggestions(true);
-        } else if (type === 'workshop') {
+        } else if (type === "workshop") {
           setWorkshopAddressSuggestions(data.predictions);
           setShowWorkshopAddressSuggestions(true);
         }
       }
     } catch (error) {
-      console.error('Address search error:', error);
+      console.error("Address search error:", error);
     }
   };
 
-  const selectAddress = async (placeId: string, description: string, type: 'study' | 'event' | 'workshop') => {
+  const selectAddress = async (
+    placeId: string,
+    description: string,
+    type: "study" | "event" | "workshop"
+  ) => {
     try {
       // Get place details including coordinates
       const response = await fetch(
         `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&key=${process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}&fields=geometry,formatted_address`
       );
       const data = await response.json();
-      
+
       if (data.result && data.result.geometry) {
         const { lat, lng } = data.result.geometry.location;
         const newLocation = {
@@ -504,7 +519,7 @@ const OrgCreate = () => {
           timestamp: Date.now(),
         };
 
-        if (type === 'study') {
+        if (type === "study") {
           setLocation(newLocation);
           setMapRegion({
             latitude: lat,
@@ -514,7 +529,7 @@ const OrgCreate = () => {
           });
           setAddressSearch(description);
           setShowAddressSuggestions(false);
-        } else if (type === 'event') {
+        } else if (type === "event") {
           setEventLocation(newLocation);
           setEventMapRegion({
             latitude: lat,
@@ -524,7 +539,7 @@ const OrgCreate = () => {
           });
           setEventAddressSearch(description);
           setShowEventAddressSuggestions(false);
-        } else if (type === 'workshop') {
+        } else if (type === "workshop") {
           setWorkshopLocation(newLocation);
           setWorkshopMapRegion({
             latitude: lat,
@@ -537,7 +552,7 @@ const OrgCreate = () => {
         }
       }
     } catch (error) {
-      console.error('Address selection error:', error);
+      console.error("Address selection error:", error);
     }
   };
 
@@ -644,7 +659,9 @@ const OrgCreate = () => {
       // Show file info
       Alert.alert(
         "Upload PDF?",
-        `File: ${pickedFile.name}\nSize: ${formatFileSize(pickedFile.size)}\n\nReady to upload this file?`,
+        `File: ${pickedFile.name}\nSize: ${formatFileSize(
+          pickedFile.size
+        )}\n\nReady to upload this file?`,
         [
           { text: "Cancel", style: "cancel" },
           {
@@ -732,7 +749,9 @@ const OrgCreate = () => {
       // Show file info
       Alert.alert(
         "Upload Memorandum?",
-        `File: ${pickedFile.name}\nSize: ${formatFileSize(pickedFile.size)}\n\nReady to upload this memorandum?`,
+        `File: ${pickedFile.name}\nSize: ${formatFileSize(
+          pickedFile.size
+        )}\n\nReady to upload this memorandum?`,
         [
           { text: "Cancel", style: "cancel" },
           {
@@ -850,13 +869,21 @@ const OrgCreate = () => {
     }
 
     // Validate in-person event location
-    if (category === "Competition / Event" && isInPersonEvent && !eventLocation) {
+    if (
+      category === "Competition / Event" &&
+      isInPersonEvent &&
+      !eventLocation
+    ) {
       setErrorMessage("Please select a location for the in-person event");
       return;
     }
 
     // Validate in-person workshop location
-    if (category === "Workshop / Seminar" && isInPersonWorkshop && !workshopLocation) {
+    if (
+      category === "Workshop / Seminar" &&
+      isInPersonWorkshop &&
+      !workshopLocation
+    ) {
       setErrorMessage("Please select a location for the in-person workshop");
       return;
     }
@@ -908,13 +935,14 @@ const OrgCreate = () => {
           // Event-specific fields
           ...(category === "Competition / Event" && {
             isInPersonEvent,
-            ...(isInPersonEvent && eventLocation && {
-              location: {
-                latitude: eventLocation.coords.latitude,
-                longitude: eventLocation.coords.longitude,
-                timestamp: eventLocation.timestamp,
-              },
-            }),
+            ...(isInPersonEvent &&
+              eventLocation && {
+                location: {
+                  latitude: eventLocation.coords.latitude,
+                  longitude: eventLocation.coords.longitude,
+                  timestamp: eventLocation.timestamp,
+                },
+              }),
           }),
         };
       } else if (category === "Workshop / Seminar") {
@@ -927,13 +955,14 @@ const OrgCreate = () => {
           ...(repeats && { selectedDays }),
           // Workshop event type and location
           isInPersonWorkshop,
-          ...(isInPersonWorkshop && workshopLocation && {
-            location: {
-              latitude: workshopLocation.coords.latitude,
-              longitude: workshopLocation.coords.longitude,
-              timestamp: workshopLocation.timestamp,
-            },
-          }),
+          ...(isInPersonWorkshop &&
+            workshopLocation && {
+              location: {
+                latitude: workshopLocation.coords.latitude,
+                longitude: workshopLocation.coords.longitude,
+                timestamp: workshopLocation.timestamp,
+              },
+            }),
         };
       } else if (category === "Study Spot") {
         // Study Spot specific fields
@@ -1115,7 +1144,11 @@ const OrgCreate = () => {
                     }}
                   >
                     <Text
-                      className={`text-base font-karla ${category === cat ? "text-[#4B1EB4] font-karla-bold" : "text-[#18181B]"}`}
+                      className={`text-base font-karla ${
+                        category === cat
+                          ? "text-[#4B1EB4] font-karla-bold"
+                          : "text-[#18181B]"
+                      }`}
                     >
                       {cat}
                     </Text>
@@ -1129,8 +1162,8 @@ const OrgCreate = () => {
               {category === "Study Spot"
                 ? "Name of Location *"
                 : category === "Workshop / Seminar"
-                  ? "Workshop/Seminar Title *"
-                  : "Title *"}
+                ? "Workshop/Seminar Title *"
+                : "Title *"}
             </Text>
             <TextInput
               className="bg-white rounded-xl px-3 h-11 text-base text-black mb-3"
@@ -1140,8 +1173,8 @@ const OrgCreate = () => {
                 category === "Study Spot"
                   ? "Enter location name"
                   : category === "Workshop / Seminar"
-                    ? "Enter workshop/seminar title"
-                    : "Enter title"
+                  ? "Enter workshop/seminar title"
+                  : "Enter title"
               }
               placeholderTextColor="#aaa"
             />
@@ -1151,10 +1184,10 @@ const OrgCreate = () => {
               {category === "Resources"
                 ? "Resource Description *"
                 : category === "Study Spot"
-                  ? "Location Details *"
-                  : category === "Workshop / Seminar"
-                    ? "Workshop/Seminar Description *"
-                    : "Description *"}
+                ? "Location Details *"
+                : category === "Workshop / Seminar"
+                ? "Workshop/Seminar Description *"
+                : "Description *"}
             </Text>
             <TextInput
               className="bg-white rounded-xl px-3 pt-3 text-base text-black mb-3 min-h-[80px] text-top"
@@ -1164,10 +1197,10 @@ const OrgCreate = () => {
                 category === "Resources"
                   ? "Enter resource description"
                   : category === "Study Spot"
-                    ? "Enter location details"
-                    : category === "Workshop / Seminar"
-                      ? "Enter workshop/seminar description"
-                      : "Enter opportunity description"
+                  ? "Enter location details"
+                  : category === "Workshop / Seminar"
+                  ? "Enter workshop/seminar description"
+                  : "Enter opportunity description"
               }
               placeholderTextColor="#aaa"
               multiline
@@ -1228,7 +1261,9 @@ const OrgCreate = () => {
                         }}
                       >
                         <Text
-                          className={`text-base ${newMilestoneDate ? "text-black" : "text-gray-500"}`}
+                          className={`text-base ${
+                            newMilestoneDate ? "text-black" : "text-gray-500"
+                          }`}
                         >
                           {newMilestoneDate || "Select date"}
                         </Text>
@@ -1266,7 +1301,9 @@ const OrgCreate = () => {
                       }}
                     >
                       <Text
-                        className={`text-base ${openTime ? "text-black" : "text-gray-500"}`}
+                        className={`text-base ${
+                          openTime ? "text-black" : "text-gray-500"
+                        }`}
                       >
                         {openTime || "Select time"}
                       </Text>
@@ -1284,7 +1321,9 @@ const OrgCreate = () => {
                       }}
                     >
                       <Text
-                        className={`text-base ${closeTime ? "text-black" : "text-gray-500"}`}
+                        className={`text-base ${
+                          closeTime ? "text-black" : "text-gray-500"
+                        }`}
                       >
                         {closeTime || "Select time"}
                       </Text>
@@ -1303,27 +1342,51 @@ const OrgCreate = () => {
                 <View className="flex-row items-center mb-3">
                   <TouchableOpacity
                     className={`flex-row items-center px-3 py-2 rounded-lg mr-3 ${
-                      !isInPersonWorkshop ? "bg-blue-100 border-2 border-blue-300" : "bg-gray-100 border-2 border-gray-300"
+                      !isInPersonWorkshop
+                        ? "bg-blue-100 border-2 border-blue-300"
+                        : "bg-gray-100 border-2 border-gray-300"
                     }`}
                     onPress={() => setIsInPersonWorkshop(false)}
                   >
-                    <Text className={`text-lg mr-2 ${!isInPersonWorkshop ? "text-blue-600" : "text-gray-500"}`}>
+                    <Text
+                      className={`text-lg mr-2 ${
+                        !isInPersonWorkshop ? "text-blue-600" : "text-gray-500"
+                      }`}
+                    >
                       🌐
                     </Text>
-                    <Text className={`font-karla ${!isInPersonWorkshop ? "text-blue-700 font-semibold" : "text-gray-600"}`}>
+                    <Text
+                      className={`font-karla ${
+                        !isInPersonWorkshop
+                          ? "text-blue-700 font-semibold"
+                          : "text-gray-600"
+                      }`}
+                    >
                       Online
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     className={`flex-row items-center px-3 py-2 rounded-lg ${
-                      isInPersonWorkshop ? "bg-green-100 border-2 border-green-300" : "bg-gray-100 border-2 border-gray-300"
+                      isInPersonWorkshop
+                        ? "bg-green-100 border-2 border-green-300"
+                        : "bg-gray-100 border-2 border-gray-300"
                     }`}
                     onPress={() => setIsInPersonWorkshop(true)}
                   >
-                    <Text className={`text-lg mr-2 ${isInPersonWorkshop ? "text-green-600" : "text-gray-500"}`}>
+                    <Text
+                      className={`text-lg mr-2 ${
+                        isInPersonWorkshop ? "text-green-600" : "text-gray-500"
+                      }`}
+                    >
                       🏢
                     </Text>
-                    <Text className={`font-karla ${isInPersonWorkshop ? "text-green-700 font-semibold" : "text-gray-600"}`}>
+                    <Text
+                      className={`font-karla ${
+                        isInPersonWorkshop
+                          ? "text-green-700 font-semibold"
+                          : "text-gray-600"
+                      }`}
+                    >
                       In-Person
                     </Text>
                   </TouchableOpacity>
@@ -1348,10 +1411,16 @@ const OrgCreate = () => {
                           {workshopLocation ? "✅" : "📍"}
                         </Text>
                         <Text
-                          className={`text-base flex-1 ${workshopLocation ? "text-green-800" : "text-black"}`}
+                          className={`text-base flex-1 ${
+                            workshopLocation ? "text-green-800" : "text-black"
+                          }`}
                         >
                           {workshopLocation
-                            ? `Workshop location selected: ${workshopLocation.coords.latitude.toFixed(4)}, ${workshopLocation.coords.longitude.toFixed(4)}`
+                            ? `Workshop location selected: ${workshopLocation.coords.latitude.toFixed(
+                                4
+                              )}, ${workshopLocation.coords.longitude.toFixed(
+                                4
+                              )}`
                             : "Tap to select workshop location"}
                         </Text>
                         <Text className="text-lg text-gray-400">→</Text>
@@ -1381,7 +1450,9 @@ const OrgCreate = () => {
                       }}
                     >
                       <Text
-                        className={`text-base ${workshopStarts ? "text-black" : "text-gray-500"}`}
+                        className={`text-base ${
+                          workshopStarts ? "text-black" : "text-gray-500"
+                        }`}
                       >
                         {workshopStarts || "Select start time"}
                       </Text>
@@ -1397,7 +1468,9 @@ const OrgCreate = () => {
                       }}
                     >
                       <Text
-                        className={`text-base ${workshopEnds ? "text-black" : "text-gray-500"}`}
+                        className={`text-base ${
+                          workshopEnds ? "text-black" : "text-gray-500"
+                        }`}
                       >
                         {workshopEnds || "Select end time"}
                       </Text>
@@ -1569,27 +1642,51 @@ const OrgCreate = () => {
                 <View className="flex-row items-center mb-3">
                   <TouchableOpacity
                     className={`flex-row items-center px-3 py-2 rounded-lg mr-3 ${
-                      !isInPersonEvent ? "bg-blue-100 border-2 border-blue-300" : "bg-gray-100 border-2 border-gray-300"
+                      !isInPersonEvent
+                        ? "bg-blue-100 border-2 border-blue-300"
+                        : "bg-gray-100 border-2 border-gray-300"
                     }`}
                     onPress={() => setIsInPersonEvent(false)}
                   >
-                    <Text className={`text-lg mr-2 ${!isInPersonEvent ? "text-blue-600" : "text-gray-500"}`}>
+                    <Text
+                      className={`text-lg mr-2 ${
+                        !isInPersonEvent ? "text-blue-600" : "text-gray-500"
+                      }`}
+                    >
                       🌐
                     </Text>
-                    <Text className={`font-karla ${!isInPersonEvent ? "text-blue-700 font-semibold" : "text-gray-600"}`}>
+                    <Text
+                      className={`font-karla ${
+                        !isInPersonEvent
+                          ? "text-blue-700 font-semibold"
+                          : "text-gray-600"
+                      }`}
+                    >
                       Online
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     className={`flex-row items-center px-3 py-2 rounded-lg ${
-                      isInPersonEvent ? "bg-green-100 border-2 border-green-300" : "bg-gray-100 border-2 border-gray-300"
+                      isInPersonEvent
+                        ? "bg-green-100 border-2 border-green-300"
+                        : "bg-gray-100 border-2 border-gray-300"
                     }`}
                     onPress={() => setIsInPersonEvent(true)}
                   >
-                    <Text className={`text-lg mr-2 ${isInPersonEvent ? "text-green-600" : "text-gray-500"}`}>
+                    <Text
+                      className={`text-lg mr-2 ${
+                        isInPersonEvent ? "text-green-600" : "text-gray-500"
+                      }`}
+                    >
                       🏢
                     </Text>
-                    <Text className={`font-karla ${isInPersonEvent ? "text-green-700 font-semibold" : "text-gray-600"}`}>
+                    <Text
+                      className={`font-karla ${
+                        isInPersonEvent
+                          ? "text-green-700 font-semibold"
+                          : "text-gray-600"
+                      }`}
+                    >
                       In-Person
                     </Text>
                   </TouchableOpacity>
@@ -1614,10 +1711,14 @@ const OrgCreate = () => {
                           {eventLocation ? "✅" : "📍"}
                         </Text>
                         <Text
-                          className={`text-base flex-1 ${eventLocation ? "text-green-800" : "text-black"}`}
+                          className={`text-base flex-1 ${
+                            eventLocation ? "text-green-800" : "text-black"
+                          }`}
                         >
                           {eventLocation
-                            ? `Event location selected: ${eventLocation.coords.latitude.toFixed(4)}, ${eventLocation.coords.longitude.toFixed(4)}`
+                            ? `Event location selected: ${eventLocation.coords.latitude.toFixed(
+                                4
+                              )}, ${eventLocation.coords.longitude.toFixed(4)}`
                             : "Tap to select event location"}
                         </Text>
                         <Text className="text-lg text-gray-400">→</Text>
@@ -1634,28 +1735,32 @@ const OrgCreate = () => {
                 <Text className="text-sm text-black font-semibold mb-1">
                   Location *
                 </Text>
-                    <TouchableOpacity
-                      className={`rounded-xl px-3 h-11 justify-center border mb-3 ${
-                        location
-                          ? "bg-green-50 border-green-300"
-                          : "bg-white border-gray-200"
+                <TouchableOpacity
+                  className={`rounded-xl px-3 h-11 justify-center border mb-3 ${
+                    location
+                      ? "bg-green-50 border-green-300"
+                      : "bg-white border-gray-200"
+                  }`}
+                  onPress={getCurrentLocation}
+                >
+                  <View className="flex-row items-center">
+                    <Text className="text-2xl mr-3">
+                      {location ? "✅" : "📍"}
+                    </Text>
+                    <Text
+                      className={`text-base flex-1 ${
+                        location ? "text-green-800" : "text-black"
                       }`}
-                      onPress={getCurrentLocation}
                     >
-                      <View className="flex-row items-center">
-                        <Text className="text-2xl mr-3">
-                          {location ? "✅" : "📍"}
-                        </Text>
-                        <Text
-                          className={`text-base flex-1 ${location ? "text-green-800" : "text-black"}`}
-                        >
-                          {location
-                            ? `Location selected: ${location.coords.latitude.toFixed(4)}, ${location.coords.longitude.toFixed(4)}`
-                            : "Tap to select study spot location"}
-                        </Text>
-                        <Text className="text-lg text-gray-400">→</Text>
-                      </View>
-                    </TouchableOpacity>
+                      {location
+                        ? `Location selected: ${location.coords.latitude.toFixed(
+                            4
+                          )}, ${location.coords.longitude.toFixed(4)}`
+                        : "Tap to select study spot location"}
+                    </Text>
+                    <Text className="text-lg text-gray-400">→</Text>
+                  </View>
+                </TouchableOpacity>
               </>
             )}
 
@@ -2079,7 +2184,7 @@ const OrgCreate = () => {
                     value={addressSearch}
                     onChangeText={(text) => {
                       setAddressSearch(text);
-                      searchAddress(text, 'study');
+                      searchAddress(text, "study");
                     }}
                     onFocus={() => {
                       if (addressSuggestions.length > 0) {
@@ -2087,22 +2192,30 @@ const OrgCreate = () => {
                       }
                     }}
                   />
-                  
+
                   {/* Address Suggestions */}
                   {showAddressSuggestions && addressSuggestions.length > 0 && (
                     <View className="bg-white border border-gray-200 rounded-xl max-h-40">
                       <ScrollView>
-                        {addressSuggestions.map((suggestion: any, index: number) => (
-                          <TouchableOpacity
-                            key={index}
-                            className="px-3 py-3 border-b border-gray-100"
-                            onPress={() => selectAddress(suggestion.place_id, suggestion.description, 'study')}
-                          >
-                            <Text className="text-sm text-gray-800 font-karla">
-                              {suggestion.description}
-                            </Text>
-                          </TouchableOpacity>
-                        ))}
+                        {addressSuggestions.map(
+                          (suggestion: any, index: number) => (
+                            <TouchableOpacity
+                              key={index}
+                              className="px-3 py-3 border-b border-gray-100"
+                              onPress={() =>
+                                selectAddress(
+                                  suggestion.place_id,
+                                  suggestion.description,
+                                  "study"
+                                )
+                              }
+                            >
+                              <Text className="text-sm text-gray-800 font-karla">
+                                {suggestion.description}
+                              </Text>
+                            </TouchableOpacity>
+                          )
+                        )}
                       </ScrollView>
                     </View>
                   )}
@@ -2123,8 +2236,10 @@ const OrgCreate = () => {
                     showsUserLocation={true}
                     showsMyLocationButton={true}
                     mapType="standard"
-                    onMapReady={() => console.log('Study Spot Map Ready')}
-                    onError={(error) => console.log('Study Spot Map Error:', error)}
+                    onMapReady={() => console.log("Study Spot Map Ready")}
+                    onError={(error) =>
+                      console.log("Study Spot Map Error:", error)
+                    }
                   >
                     {location && (
                       <Marker
@@ -2143,11 +2258,14 @@ const OrgCreate = () => {
                 {/* Instructions */}
                 <View className="p-4 bg-gray-50">
                   <Text className="text-sm text-gray-600 text-center mb-2">
-                    Tap anywhere on the map to place a pin for your study spot location
+                    Tap anywhere on the map to place a pin for your study spot
+                    location
                   </Text>
                   <Text className="text-xs text-gray-500 text-center">
                     {location
-                      ? `Current selection: ${location.coords.latitude.toFixed(6)}, ${location.coords.longitude.toFixed(6)}`
+                      ? `Current selection: ${location.coords.latitude.toFixed(
+                          6
+                        )}, ${location.coords.longitude.toFixed(6)}`
                       : "No location selected yet"}
                   </Text>
                 </View>
@@ -2166,17 +2284,19 @@ const OrgCreate = () => {
                   </View>
                   <TouchableOpacity
                     className={`rounded-xl py-4 px-6 ${
-                      location 
-                        ? "bg-[#a084e8]" 
-                        : "bg-gray-300"
+                      location ? "bg-[#a084e8]" : "bg-gray-300"
                     }`}
                     onPress={() => setShowMapModal(false)}
                     disabled={!location}
                   >
-                    <Text className={`text-center text-lg font-bold ${
-                      location ? "text-white" : "text-gray-500"
-                    }`}>
-                      {location ? "✓ Confirm Location" : "Select a location first"}
+                    <Text
+                      className={`text-center text-lg font-bold ${
+                        location ? "text-white" : "text-gray-500"
+                      }`}
+                    >
+                      {location
+                        ? "✓ Confirm Location"
+                        : "Select a location first"}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -2218,7 +2338,7 @@ const OrgCreate = () => {
                     value={eventAddressSearch}
                     onChangeText={(text) => {
                       setEventAddressSearch(text);
-                      searchAddress(text, 'event');
+                      searchAddress(text, "event");
                     }}
                     onFocus={() => {
                       if (eventAddressSuggestions.length > 0) {
@@ -2226,25 +2346,34 @@ const OrgCreate = () => {
                       }
                     }}
                   />
-                  
+
                   {/* Address Suggestions */}
-                  {showEventAddressSuggestions && eventAddressSuggestions.length > 0 && (
-                    <View className="bg-white border border-gray-200 rounded-xl max-h-40">
-                      <ScrollView>
-                        {eventAddressSuggestions.map((suggestion: any, index: number) => (
-                          <TouchableOpacity
-                            key={index}
-                            className="px-3 py-3 border-b border-gray-100"
-                            onPress={() => selectAddress(suggestion.place_id, suggestion.description, 'event')}
-                          >
-                            <Text className="text-sm text-gray-800 font-karla">
-                              {suggestion.description}
-                            </Text>
-                          </TouchableOpacity>
-                        ))}
-                      </ScrollView>
-                    </View>
-                  )}
+                  {showEventAddressSuggestions &&
+                    eventAddressSuggestions.length > 0 && (
+                      <View className="bg-white border border-gray-200 rounded-xl max-h-40">
+                        <ScrollView>
+                          {eventAddressSuggestions.map(
+                            (suggestion: any, index: number) => (
+                              <TouchableOpacity
+                                key={index}
+                                className="px-3 py-3 border-b border-gray-100"
+                                onPress={() =>
+                                  selectAddress(
+                                    suggestion.place_id,
+                                    suggestion.description,
+                                    "event"
+                                  )
+                                }
+                              >
+                                <Text className="text-sm text-gray-800 font-karla">
+                                  {suggestion.description}
+                                </Text>
+                              </TouchableOpacity>
+                            )
+                          )}
+                        </ScrollView>
+                      </View>
+                    )}
                 </View>
 
                 {/* Map */}
@@ -2259,8 +2388,8 @@ const OrgCreate = () => {
                     }}
                     region={eventMapRegion}
                     onPress={handleEventMapPress}
-                    onMapReady={() => console.log('Event Map Ready')}
-                    onError={(error) => console.log('Event Map Error:', error)}
+                    onMapReady={() => console.log("Event Map Ready")}
+                    onError={(error) => console.log("Event Map Error:", error)}
                   >
                     {eventLocation && (
                       <Marker
@@ -2279,11 +2408,14 @@ const OrgCreate = () => {
                 {/* Instructions */}
                 <View className="p-4 bg-gray-50">
                   <Text className="text-sm text-gray-600 text-center mb-2">
-                    Tap anywhere on the map to place a pin for your event location
+                    Tap anywhere on the map to place a pin for your event
+                    location
                   </Text>
                   <Text className="text-xs text-gray-500 text-center">
                     {eventLocation
-                      ? `Current selection: ${eventLocation.coords.latitude.toFixed(6)}, ${eventLocation.coords.longitude.toFixed(6)}`
+                      ? `Current selection: ${eventLocation.coords.latitude.toFixed(
+                          6
+                        )}, ${eventLocation.coords.longitude.toFixed(6)}`
                       : "No location selected yet"}
                   </Text>
                 </View>
@@ -2302,17 +2434,19 @@ const OrgCreate = () => {
                   </View>
                   <TouchableOpacity
                     className={`rounded-xl py-4 px-6 ${
-                      eventLocation 
-                        ? "bg-[#a084e8]" 
-                        : "bg-gray-300"
+                      eventLocation ? "bg-[#a084e8]" : "bg-gray-300"
                     }`}
                     onPress={() => setShowEventMapModal(false)}
                     disabled={!eventLocation}
                   >
-                    <Text className={`text-center text-lg font-bold ${
-                      eventLocation ? "text-white" : "text-gray-500"
-                    }`}>
-                      {eventLocation ? "✓ Confirm Location" : "Select a location first"}
+                    <Text
+                      className={`text-center text-lg font-bold ${
+                        eventLocation ? "text-white" : "text-gray-500"
+                      }`}
+                    >
+                      {eventLocation
+                        ? "✓ Confirm Location"
+                        : "Select a location first"}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -2354,7 +2488,7 @@ const OrgCreate = () => {
                     value={workshopAddressSearch}
                     onChangeText={(text) => {
                       setWorkshopAddressSearch(text);
-                      searchAddress(text, 'workshop');
+                      searchAddress(text, "workshop");
                     }}
                     onFocus={() => {
                       if (workshopAddressSuggestions.length > 0) {
@@ -2362,25 +2496,34 @@ const OrgCreate = () => {
                       }
                     }}
                   />
-                  
+
                   {/* Address Suggestions */}
-                  {showWorkshopAddressSuggestions && workshopAddressSuggestions.length > 0 && (
-                    <View className="bg-white border border-gray-200 rounded-xl max-h-40">
-                      <ScrollView>
-                        {workshopAddressSuggestions.map((suggestion: any, index: number) => (
-                          <TouchableOpacity
-                            key={index}
-                            className="px-3 py-3 border-b border-gray-100"
-                            onPress={() => selectAddress(suggestion.place_id, suggestion.description, 'workshop')}
-                          >
-                            <Text className="text-sm text-gray-800 font-karla">
-                              {suggestion.description}
-                            </Text>
-                          </TouchableOpacity>
-                        ))}
-                      </ScrollView>
-                    </View>
-                  )}
+                  {showWorkshopAddressSuggestions &&
+                    workshopAddressSuggestions.length > 0 && (
+                      <View className="bg-white border border-gray-200 rounded-xl max-h-40">
+                        <ScrollView>
+                          {workshopAddressSuggestions.map(
+                            (suggestion: any, index: number) => (
+                              <TouchableOpacity
+                                key={index}
+                                className="px-3 py-3 border-b border-gray-100"
+                                onPress={() =>
+                                  selectAddress(
+                                    suggestion.place_id,
+                                    suggestion.description,
+                                    "workshop"
+                                  )
+                                }
+                              >
+                                <Text className="text-sm text-gray-800 font-karla">
+                                  {suggestion.description}
+                                </Text>
+                              </TouchableOpacity>
+                            )
+                          )}
+                        </ScrollView>
+                      </View>
+                    )}
                 </View>
 
                 {/* Map */}
@@ -2395,8 +2538,10 @@ const OrgCreate = () => {
                     }}
                     region={workshopMapRegion}
                     onPress={handleWorkshopMapPress}
-                    onMapReady={() => console.log('Workshop Map Ready')}
-                    onError={(error) => console.log('Workshop Map Error:', error)}
+                    onMapReady={() => console.log("Workshop Map Ready")}
+                    onError={(error) =>
+                      console.log("Workshop Map Error:", error)
+                    }
                   >
                     {workshopLocation && (
                       <Marker
@@ -2415,11 +2560,14 @@ const OrgCreate = () => {
                 {/* Instructions */}
                 <View className="p-4 bg-gray-50">
                   <Text className="text-sm text-gray-600 text-center mb-2">
-                    Tap anywhere on the map to place a pin for your workshop location
+                    Tap anywhere on the map to place a pin for your workshop
+                    location
                   </Text>
                   <Text className="text-xs text-gray-500 text-center">
                     {workshopLocation
-                      ? `Current selection: ${workshopLocation.coords.latitude.toFixed(6)}, ${workshopLocation.coords.longitude.toFixed(6)}`
+                      ? `Current selection: ${workshopLocation.coords.latitude.toFixed(
+                          6
+                        )}, ${workshopLocation.coords.longitude.toFixed(6)}`
                       : "No location selected yet"}
                   </Text>
                 </View>
@@ -2438,17 +2586,19 @@ const OrgCreate = () => {
                   </View>
                   <TouchableOpacity
                     className={`rounded-xl py-4 px-6 ${
-                      workshopLocation 
-                        ? "bg-[#a084e8]" 
-                        : "bg-gray-300"
+                      workshopLocation ? "bg-[#a084e8]" : "bg-gray-300"
                     }`}
                     onPress={() => setShowWorkshopMapModal(false)}
                     disabled={!workshopLocation}
                   >
-                    <Text className={`text-center text-lg font-bold ${
-                      workshopLocation ? "text-white" : "text-gray-500"
-                    }`}>
-                      {workshopLocation ? "✓ Confirm Location" : "Select a location first"}
+                    <Text
+                      className={`text-center text-lg font-bold ${
+                        workshopLocation ? "text-white" : "text-gray-500"
+                      }`}
+                    >
+                      {workshopLocation
+                        ? "✓ Confirm Location"
+                        : "Select a location first"}
                     </Text>
                   </TouchableOpacity>
                 </View>

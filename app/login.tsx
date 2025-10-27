@@ -2,13 +2,9 @@ import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Image, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { signIn } from "../services/authServices";
-import {
-  signInWithFacebook,
-  signInWithGoogle,
-} from "../services/socialAuthServices";
 
 export default function Login() {
   const router = useRouter();
@@ -72,7 +68,6 @@ export default function Login() {
       setLoading(false);
     }
   };
-
 
   return (
     <SafeAreaView className="flex-1 bg-secondary" edges={["top"]}>
@@ -154,7 +149,7 @@ export default function Login() {
               accessibilityLabel={
                 showPassword ? "Hide password" : "Show password"
               }
-              activeOpacity={1} // Prevents opacity change on press
+              activeOpacity={1}
             >
               <Feather
                 name={showPassword ? "eye-off" : "eye"}
@@ -174,7 +169,7 @@ export default function Login() {
           </TouchableOpacity>
           {/* Login Button */}
           <TouchableOpacity
-            className="bg-secondary rounded-full py-3 items-center mb-4 shadow-md"
+            className="bg-secondary rounded-full py-3 items-center mb-6"
             onPress={handleLogin}
             disabled={loading}
           >
@@ -182,39 +177,6 @@ export default function Login() {
               {loading ? "Logging in..." : "Login"}
             </Text>
           </TouchableOpacity>
-          {/* Or Divider */}
-          <View className="flex-row items-center my-4">
-            <View className="flex-1 h-px bg-secondary" />
-            <Text className="mx-2 text-secondary font-karla text-[13px]">
-              Or continue with
-            </Text>
-            <View className="flex-1 h-px bg-secondary" />
-          </View>
-          {/* Social Buttons */}
-          <View className="flex-row justify-center mb-4 space-x-4">
-            <TouchableOpacity
-              className="bg-white rounded-xl p-2 shadow mr-4"
-              onPress={handleFacebookLogin}
-              disabled={loading}
-            >
-              <Image
-                source={require("../assets/images/fb.png")}
-                className="w-8 h-8"
-                resizeMode="contain"
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              className="bg-white rounded-xl p-2 shadow"
-              onPress={handleGoogleLogin}
-              disabled={loading}
-            >
-              <Image
-                source={require("../assets/images/google.png")}
-                className="w-8 h-8"
-                resizeMode="contain"
-              />
-            </TouchableOpacity>
-          </View>
           {/* Sign Up */}
           <View className="flex-row justify-center items-center mt-2">
             <Text className="text-secondary font-karla text-[13px]">
