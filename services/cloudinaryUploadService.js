@@ -552,9 +552,23 @@ export const getAllActiveUploads = async (limit = null) => {
           isVerified,
         };
       })
-      .filter((upload) => upload.isVerified); // Only show uploads from verified orgs
+      .filter((upload) => {
+        // Only show uploads from verified orgs
+        if (!upload.isVerified) return false;
+        
+        // Exclude memorandums - only show resources
+        const category = upload.category?.toLowerCase() || "";
+        const isMemorandum = category === "memorandum" || 
+                            category === "memorandums" ||
+                            upload.tags?.some((tag: string) => 
+                              typeof tag === 'string' && tag.toLowerCase() === "memorandum"
+                            );
+        
+        // Only return resources (not memorandums)
+        return !isMemorandum;
+      });
 
-    console.log("✅ Verified uploads:", verifiedUploads.length);
+    console.log("✅ Verified resources (excluding memorandums):", verifiedUploads.length);
 
     return limit ? verifiedUploads.slice(0, limit) : verifiedUploads;
   } catch (error) {
