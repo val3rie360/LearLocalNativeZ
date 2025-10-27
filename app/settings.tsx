@@ -75,7 +75,7 @@ export default function Settings() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-[#4B1EB4]" edges={["top"]}>
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View className="bg-[#4B1EB4] px-6 py-4">
@@ -87,13 +87,13 @@ export default function Settings() {
             >
               <Ionicons name="arrow-back" size={24} color="#fff" />
             </TouchableOpacity>
-            <Text style={{ color: "#4B1EB4" }} className="text-[24px] font-karla-bold">
+            <Text style={{ color: "#fff" }} className="text-[24px] font-karla-bold">
               Settings
             </Text>
           </View>
         </View>
 
-        <View className="px-6 py-6">
+        <View className="px-6 py-6 bg-white">
           {/* Profile Section */}
           <View className="bg-white rounded-2xl p-4 mb-6 shadow-sm">
             <Text className="text-[18px] font-karla-bold text-[#18181B] mb-4">
