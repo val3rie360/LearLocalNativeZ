@@ -158,3 +158,4 @@ const handleForgotPassword = async (email) => {
 - Rate limiting prevents abuse
 
 This implementation provides a secure, user-friendly password reset system that follows industry best practices and integrates seamlessly with Firebase Authentication.
+

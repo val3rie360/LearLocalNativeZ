@@ -1344,7 +1344,10 @@ const OrgCreate = () => {
                         ? "bg-blue-100 border-2 border-blue-300"
                         : "bg-gray-100 border-2 border-gray-300"
                     }`}
-                    onPress={() => setIsInPersonWorkshop(false)}
+                    onPress={() => {
+                      setIsInPersonWorkshop(false);
+                      setWorkshopLocation(null); // Clear location when switching to online
+                    }}
                   >
                     <Text
                       className={`text-lg mr-2 ${
@@ -1644,7 +1647,10 @@ const OrgCreate = () => {
                         ? "bg-blue-100 border-2 border-blue-300"
                         : "bg-gray-100 border-2 border-gray-300"
                     }`}
-                    onPress={() => setIsInPersonEvent(false)}
+                    onPress={() => {
+                      setIsInPersonEvent(false);
+                      setEventLocation(null); // Clear location when switching to online
+                    }}
                   >
                     <Text
                       className={`text-lg mr-2 ${

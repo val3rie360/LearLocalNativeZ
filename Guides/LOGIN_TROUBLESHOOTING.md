@@ -211,3 +211,4 @@ If urgent, you can temporarily:
 3. Reset passwords manually in Firebase Console
 
 This guide should help identify and resolve most login issues. Use the debug tools to get specific information about what's failing.
+

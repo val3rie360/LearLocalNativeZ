@@ -55,3 +55,4 @@ export const clearAllAuthData = async () => {
     console.error("Error clearing auth data:", error);
   }
 };
+

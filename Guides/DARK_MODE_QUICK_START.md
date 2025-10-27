@@ -165,3 +165,4 @@ export default function MyScreen() {
 ```
 
 This pattern works for all screens in the app!
+
