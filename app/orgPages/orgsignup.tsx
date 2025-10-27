@@ -95,9 +95,19 @@ export default function OrgSignup() {
         mimeType: file.mimeType,
       });
 
-      // Ensure all required properties exist
+      // Validate file before upload
       if (!file.uri || !file.name || file.size === undefined) {
         throw new Error("Invalid file selected. Please try again.");
+      }
+      
+      // Check file size (50MB limit)
+      if (file.size > 50 * 1024 * 1024) {
+        throw new Error("File too large. Maximum size is 50MB.");
+      }
+      
+      // Check file type
+      if (file.mimeType && file.mimeType !== "application/pdf") {
+        throw new Error("Invalid file type. Only PDF files are allowed.");
       }
 
       console.log(
@@ -160,8 +170,16 @@ export default function OrgSignup() {
         );
       } else if (error.code === "auth/weak-password") {
         setError("Password is too weak. Please choose a stronger password.");
+      } else if (error.code === "auth/invalid-email") {
+        setError("Invalid email address format.");
+      } else if (error.message?.includes("400")) {
+        setError("Invalid request. Please check your verification file and try again.");
       } else if (error.message?.includes("File upload failed")) {
         setError("Failed to upload verification file. Please try again.");
+      } else if (error.message?.includes("Invalid file")) {
+        setError("Invalid file format. Please select a valid PDF file.");
+      } else if (error.message?.includes("File too large")) {
+        setError("File is too large. Please select a file smaller than 50MB.");
       } else {
         setError(`Registration failed: ${error.message}`);
       }
