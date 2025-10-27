@@ -199,9 +199,41 @@ export const getOrganizationUploads = async (organizationId) => {
       uploads.push({ id: doc.id, ...doc.data() });
     });
 
-    console.log("✅ Active uploads:", uploads.length);
+    console.log("✅ Total active uploads:", uploads.length);
 
-    return uploads;
+    // Filter out memorandums and verification files - only show educational resources
+    const filteredUploads = uploads.filter((upload) => {
+      const category = upload.category?.toLowerCase() || "";
+      const displayName = upload.displayName?.toLowerCase() || "";
+      const fileName = upload.fileName?.toLowerCase() || "";
+      const tags = upload.tags || [];
+      
+      // Exclude memorandums
+      const isMemorandum = category === "memorandum" || 
+                          category === "memorandums" ||
+                          displayName.includes("memorandum") ||
+                          fileName.includes("memorandum") ||
+                          tags.some((tag: string) => 
+                            typeof tag === 'string' && tag.toLowerCase() === "memorandum"
+                          );
+      
+      // Exclude verification files
+      const isVerificationFile = category === "verification" ||
+                                 category === "verification documents" ||
+                                 displayName.includes("verification") ||
+                                 displayName.includes("verification document") ||
+                                 fileName.includes("verification") ||
+                                 tags.some((tag: string) => 
+                                   typeof tag === 'string' && tag.toLowerCase().includes("verification")
+                                 );
+      
+      // Only return educational resources (not memorandums or verification files)
+      return !isMemorandum && !isVerificationFile;
+    });
+
+    console.log("✅ Educational resources (excluding memorandums and verification files):", filteredUploads.length);
+
+    return filteredUploads;
   } catch (error) {
     console.error("❌ Error fetching uploads:", error);
     console.log("💡 Index ID needed: Check if index CICAgJiUpoMK is enabled");
