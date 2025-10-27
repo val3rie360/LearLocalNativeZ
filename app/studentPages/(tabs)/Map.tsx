@@ -58,6 +58,21 @@ const Map = () => {
       setOpportunities(opps);
       console.log("📍 Map loaded:", opps.length, "opportunities");
       
+      // Debug: Log study spot data specifically
+      const studySpots = opps.filter(opp => opp.category === "Study Spot");
+      console.log("📚 Study Spots loaded:", studySpots.length);
+      studySpots.forEach((spot, index) => {
+        console.log(`Study Spot ${index + 1}:`, {
+          id: spot.id,
+          title: spot.title,
+          availability: (spot as any).availability,
+          availabilityHours: (spot as any).availabilityHours,
+          openTime: (spot as any).openTime,
+          closeTime: (spot as any).closeTime,
+          availabilityType: (spot as any).availabilityType,
+        });
+      });
+      
       // If navigated from opportunity details, center on specific opportunity
       if (centerLat && centerLng && opportunityId) {
         const targetOpp = opps.find(opp => opp.id === opportunityId);
@@ -279,6 +294,18 @@ const Map = () => {
               /* Display for All Opportunities (Study Spots, Workshops, Events, Scholarships, Resources) */
               (() => {
                 const opp = selectedItem as Opportunity;
+                
+                // Debug: Log the opportunity data to see what's available
+                console.log("🗺️ Map Details - Opportunity Data:", {
+                  id: opp.id,
+                  title: opp.title,
+                  category: opp.category,
+                  availability: (opp as any).availability,
+                  availabilityHours: (opp as any).availabilityHours,
+                  openTime: (opp as any).openTime,
+                  closeTime: (opp as any).closeTime,
+                  availabilityType: (opp as any).availabilityType,
+                });
                 
                 // Dynamic styling based on category
                 const getCategoryStyle = () => {

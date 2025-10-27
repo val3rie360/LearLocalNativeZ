@@ -324,7 +324,10 @@ const OrgProfile: React.FC = () => {
               
               <TouchableOpacity
                 className="flex-row items-center py-1.5 justify-between"
-                onPress={() => router.push("../../settings")}
+                onPress={() => {
+                  console.log("🔧 Navigating to settings...");
+                  router.push("/settings");
+                }}
               >
                 <View className="flex-row items-center">
                   <Ionicons
@@ -427,7 +430,7 @@ const OrgProfile: React.FC = () => {
                   latitudeDelta: 0.01,
                   longitudeDelta: 0.01,
                 }}
-                onPress={(e) => {
+                onPress={(e: any) => {
                   setSelectedLocation({
                     latitude: e.nativeEvent.coordinate.latitude,
                     longitude: e.nativeEvent.coordinate.longitude,
