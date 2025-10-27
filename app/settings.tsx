@@ -1,13 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import {
-  Alert,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../contexts/AuthContext";
 import { logOut } from "../services/authServices";
@@ -19,37 +13,29 @@ export default function Settings() {
   console.log("🔧 Settings page loaded successfully!");
 
   const handleLogout = () => {
-    Alert.alert(
-      "Logout",
-      "Are you sure you want to logout?",
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
+    Alert.alert("Logout", "Are you sure you want to logout?", [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Logout",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await logOut();
+            console.log("User logged out successfully");
+          } catch (error) {
+            console.error("Logout error:", error);
+            Alert.alert("Error", "Failed to logout. Please try again.");
+          }
         },
-        {
-          text: "Logout",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await logOut();
-              console.log("User logged out successfully");
-            } catch (error) {
-              console.error("Logout error:", error);
-              Alert.alert("Error", "Failed to logout. Please try again.");
-            }
-          },
-        },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleEditProfile = () => {
     router.push("/editaccount");
-  };
-
-  const handleChangePassword = () => {
-    router.push("/forgotpassword");
   };
 
   const handlePrivacyPolicy = () => {
@@ -87,19 +73,22 @@ export default function Settings() {
             >
               <Ionicons name="arrow-back" size={24} color="#fff" />
             </TouchableOpacity>
-            <Text style={{ color: "#fff" }} className="text-[24px] font-karla-bold">
+            <Text
+              style={{ color: "#fff" }}
+              className="text-[24px] font-karla-bold"
+            >
               Settings
             </Text>
           </View>
         </View>
 
-        <View className="px-6 py-6 bg-white">
+        <View className="px-6 py-6 bg-[#F6F4FE]">
           {/* Profile Section */}
           <View className="bg-white rounded-2xl p-4 mb-6 shadow-sm">
             <Text className="text-[18px] font-karla-bold text-[#18181B] mb-4">
               Profile
             </Text>
-            
+
             <TouchableOpacity
               className="flex-row items-center justify-between py-3"
               onPress={handleEditProfile}
@@ -119,28 +108,6 @@ export default function Settings() {
               </View>
               <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
             </TouchableOpacity>
-
-            <View className="h-px bg-[#E5E7EB] my-2" />
-
-            <TouchableOpacity
-              className="flex-row items-center justify-between py-3"
-              onPress={handleChangePassword}
-            >
-              <View className="flex-row items-center">
-                <View className="w-10 h-10 bg-[#FEF3C7] rounded-lg items-center justify-center mr-3">
-                  <Ionicons name="lock-closed" size={20} color="#D97706" />
-                </View>
-                <View>
-                  <Text className="text-[16px] font-karla-bold text-[#18181B]">
-                    Change Password
-                  </Text>
-                  <Text className="text-[14px] font-karla text-[#6B7280]">
-                    Update your password
-                  </Text>
-                </View>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-            </TouchableOpacity>
           </View>
 
           {/* Support Section */}
@@ -148,7 +115,7 @@ export default function Settings() {
             <Text className="text-[18px] font-karla-bold text-[#18181B] mb-4">
               Support
             </Text>
-            
+
             <TouchableOpacity
               className="flex-row items-center justify-between py-3"
               onPress={handleContactSupport}
@@ -219,14 +186,18 @@ export default function Settings() {
             <Text className="text-[18px] font-karla-bold text-[#18181B] mb-4">
               About
             </Text>
-            
+
             <TouchableOpacity
               className="flex-row items-center justify-between py-3"
               onPress={handleAbout}
             >
               <View className="flex-row items-center">
                 <View className="w-10 h-10 bg-[#FEF3C7] rounded-lg items-center justify-center mr-3">
-                  <Ionicons name="information-circle" size={20} color="#D97706" />
+                  <Ionicons
+                    name="information-circle"
+                    size={20}
+                    color="#D97706"
+                  />
                 </View>
                 <View>
                   <Text className="text-[16px] font-karla-bold text-[#18181B]">
