@@ -25,13 +25,45 @@ export default function Login() {
       return;
     }
 
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
     setLoading(true);
     try {
       await signIn(email.trim(), password.trim());
       // Redirection will be handled by useEffect when profile data loads
     } catch (error) {
-      setError("Invalid email or password. Please try again.");
-      console.error("Login error:", error);
+      setError(error.message || "Login failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setError("");
+    setLoading(true);
+    try {
+      await signInWithGoogle();
+      // Redirection will be handled by useEffect when profile data loads
+    } catch (error) {
+      setError("Google sign-in failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFacebookLogin = async () => {
+    setError("");
+    setLoading(true);
+    try {
+      await signInWithFacebook();
+      // Redirection will be handled by useEffect when profile data loads
+    } catch (error) {
+      setError("Facebook sign-in failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -128,8 +160,8 @@ export default function Login() {
           </View>
           {/* Forgot Password */}
           <TouchableOpacity
-            className="self-end mb-6"
-            onPress={() => router.push("../(tabs)/Home")}
+            className="self-end mb-4"
+            onPress={() => router.push("/forgotpassword")}
           >
             <Text className="text-secondary text-[13px] font-karla-bold opacity-85 underline">
               Forgot Password?

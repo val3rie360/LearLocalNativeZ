@@ -171,7 +171,10 @@ const Profile: React.FC = () => {
         <View className="w-[85%]">
           <TouchableOpacity
             className="flex-row items-center py-1.5 justify-between"
-            onPress={() => router.push("../../settings")}
+            onPress={() => {
+              console.log("🔧 Navigating to settings...");
+              router.push("/settings");
+            }}
           >
             <View className="flex-row items-center">
               <Ionicons

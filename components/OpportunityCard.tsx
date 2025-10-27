@@ -67,6 +67,42 @@ const OpportunityCard: React.FC<OpportunityCardProps> = ({
     setIsBookmarked(bookmarked);
   }, [bookmarked]);
 
+  // Format amount with Philippine Peso currency
+  const formatAmount = (amount: string) => {
+    if (!amount || amount === "N/A") return "N/A";
+    
+    // Remove any existing currency symbols and clean the amount
+    let cleanAmount = amount.replace(/[^\d.,]/g, '');
+    
+    // Handle different decimal separators (comma vs period)
+    if (cleanAmount.includes(',') && cleanAmount.includes('.')) {
+      // If both exist, assume comma is thousands separator and period is decimal
+      cleanAmount = cleanAmount.replace(/,/g, '');
+    } else if (cleanAmount.includes(',') && !cleanAmount.includes('.')) {
+      // If only comma exists, check if it's decimal or thousands separator
+      const parts = cleanAmount.split(',');
+      if (parts.length === 2 && parts[1].length <= 2) {
+        // Likely decimal separator
+        cleanAmount = cleanAmount.replace(',', '.');
+      } else {
+        // Likely thousands separator
+        cleanAmount = cleanAmount.replace(/,/g, '');
+      }
+    }
+    
+    // Convert to number and format with commas
+    const numAmount = parseFloat(cleanAmount);
+    if (isNaN(numAmount)) return "N/A";
+    
+    // Format with commas and handle decimals
+    const formatted = numAmount.toLocaleString('en-US', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2
+    });
+    
+    return `Php ${formatted}`;
+  };
+
   const handleBookmark = () => {
     setIsBookmarked((prev) => !prev);
     // Call parent callback to persist bookmark state
@@ -98,8 +134,8 @@ const OpportunityCard: React.FC<OpportunityCardProps> = ({
       </View>
       {/* Info */}
       <InfoRow icon="person-outline" label="Posted by:" value={postedBy} />
-      <InfoRow icon="calendar-outline" label="Deadline:" value={deadline} />
-      <InfoRow icon="cash-outline" label="Amount:" value={amount} />
+      {deadline && <InfoRow icon="calendar-outline" label="Deadline:" value={deadline} />}
+      {amount && <InfoRow icon="cash-outline" label="Amount:" value={formatAmount(amount)} />}
 
       {/* Description */}
       <Text

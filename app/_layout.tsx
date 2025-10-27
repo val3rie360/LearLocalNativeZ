@@ -4,11 +4,13 @@ import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useRef, useState } from "react";
 import { Animated, Image, Text, View } from "react-native";
 import { AuthProvider, useAuth } from "../contexts/AuthContext";
+import { ThemeProvider, useTheme } from "../contexts/ThemeContext";
 import { getUserProfile } from "../services/firestoreService";
 import "./globals.css";
 
 function RootLayoutNav() {
-  const { user, loading } = useAuth();
+  const { user, loading, isAuthenticated, sessionValid } = useAuth();
+  const { theme } = useTheme();
   const router = useRouter();
   const segments = useSegments();
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -87,6 +89,14 @@ function RootLayoutNav() {
       return;
     }
 
+    // Log authentication state for debugging
+    console.log("🔐 Auth State:", {
+      isAuthenticated,
+      sessionValid,
+      user: user ? `User ${user.uid}` : "No user",
+      userRole,
+    });
+
     const currentRoute = segments[0];
     const isOnProtectedStudentPages =
       currentRoute === "studentPages" && segments[1] === "(tabs)";
@@ -101,7 +111,7 @@ function RootLayoutNav() {
 
     // Redirect unauthenticated users from protected pages to login
     if (
-      !user &&
+      !isAuthenticated &&
       (isOnProtectedStudentPages || isOnProtectedOrgPages || isOnAdminPage)
     ) {
       console.log(
@@ -137,9 +147,12 @@ function RootLayoutNav() {
         router.replace("/studentPages/(tabs)/Home");
       }
     }
-  }, [user, loading, userRole, roleLoading, segments, router]);
+  }, [user, loading, userRole, roleLoading, segments, router, isAuthenticated, sessionValid]);
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return <Stack screenOptions={{ 
+    headerShown: false, 
+    contentStyle: { backgroundColor: theme.background } 
+  }} />;
 }
 SplashScreen.preventAutoHideAsync();
 
@@ -226,8 +239,10 @@ export default function RootLayout() {
   }
 
   return (
-    <AuthProvider>
-      <RootLayoutNav />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <RootLayoutNav />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
