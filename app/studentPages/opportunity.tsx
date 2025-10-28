@@ -473,6 +473,74 @@ const Opportunity = () => {
               </>
             )}
 
+            {/* Map Preview - For In-Person Workshops/Events */}
+            {(opportunity.category === "Workshop / Seminar" ||
+              opportunity.category === "Competition / Event") &&
+              (opportunity.isInPersonWorkshop || opportunity.isInPersonEvent) &&
+              opportunity.location && (
+                <View className="bg-white rounded-xl p-4 mb-6 shadow-sm">
+                  <Text className="font-karla-bold text-[16px] text-[#18181B] mb-3">
+                    Event Location
+                  </Text>
+                  <TouchableOpacity
+                    className="w-full"
+                    onPress={() => {
+                      router.push({
+                        pathname: "/studentPages/(tabs)/Map",
+                        params: {
+                          centerLat: opportunity.location.latitude.toString(),
+                          centerLng: opportunity.location.longitude.toString(),
+                          opportunityId: opportunity.id,
+                        },
+                      });
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <View className="rounded-xl overflow-hidden border-2 border-[#3B82F6]">
+                      <View className="h-32">
+                        <MapView
+                          style={{ flex: 1 }}
+                          region={{
+                            latitude: opportunity.location.latitude,
+                            longitude: opportunity.location.longitude,
+                            latitudeDelta: 0.01,
+                            longitudeDelta: 0.01,
+                          }}
+                          scrollEnabled={false}
+                          zoomEnabled={false}
+                          pitchEnabled={false}
+                          rotateEnabled={false}
+                          moveOnMarkerPress={false}
+                        >
+                          <Marker
+                            coordinate={{
+                              latitude: opportunity.location.latitude,
+                              longitude: opportunity.location.longitude,
+                            }}
+                            pinColor="#3B82F6"
+                            title={opportunity.title}
+                            description="Event Location"
+                          />
+                        </MapView>
+                      </View>
+                      <View className="bg-[#EFF6FF] px-3 py-2 flex-row items-center justify-between">
+                        <View className="flex-row items-center">
+                          <Ionicons name="location" size={16} color="#3B82F6" />
+                          <Text className="ml-2 text-[#3B82F6] text-[12px] font-karla-bold">
+                            Tap to view on Map
+                          </Text>
+                        </View>
+                        <Ionicons
+                          name="chevron-forward"
+                          size={16}
+                          color="#3B82F6"
+                        />
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              )}
+
             {/* Availability Section - For Study Spots */}
             {opportunity.category === "Study Spot" && (
               <>
