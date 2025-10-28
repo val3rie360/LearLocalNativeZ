@@ -416,7 +416,118 @@ const Map = () => {
                   };
                   const style = getCategoryStyle();
 
-                  return <>{/* ... your existing inner JSX here ... */}</>;
+                  return (
+                    <>
+                      {/* Header */}
+                      <View className="flex-row items-center mb-3">
+                        <View
+                          className="rounded-full p-2 mr-3"
+                          style={{ backgroundColor: style.bg }}
+                        >
+                          <Ionicons name={style.icon} size={24} color={style.color} />
+                        </View>
+                        <View className="flex-1">
+                          <Text className="font-karla-bold text-[18px] text-[#18181B]">
+                            {opp.title}
+                          </Text>
+                          <Text
+                            className="font-karla text-[14px]"
+                            style={{ color: style.color }}
+                          >
+                            {opp.category}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Details Section */}
+                      <View className="mb-3">
+                        {/* Organization Info */}
+                        <View className="flex-row items-center mb-2">
+                          <Ionicons name="business" size={16} color="#6B7280" />
+                          <Text className="ml-2 text-[#18181B] text-[14px] font-karla">
+                            {opp.organizationName}
+                            {opp.organizationVerified && (
+                              <Ionicons name="checkmark-circle" size={14} color="#10B981" />
+                            )}
+                          </Text>
+                        </View>
+
+                        {/* Address */}
+                        {opp.address && (
+                          <View className="flex-row items-start mb-2">
+                            <Ionicons name="location" size={16} color="#6B7280" />
+                            <Text className="ml-2 text-[#6B7280] text-[13px] font-karla flex-1">
+                              {opp.address}
+                            </Text>
+                          </View>
+                        )}
+
+                        {/* Study Spot Specific Info */}
+                        {opp.category === "Study Spot" && (
+                          <>
+                            {(opp as any).openTime && (opp as any).closeTime && (
+                              <View className="flex-row items-center mb-2">
+                                <Ionicons name="time" size={16} color="#6B7280" />
+                                <Text className="ml-2 text-[#6B7280] text-[13px] font-karla">
+                                  {(opp as any).openTime} - {(opp as any).closeTime}
+                                </Text>
+                              </View>
+                            )}
+                            {(opp as any).availabilityType && (
+                              <View className="flex-row items-center mb-2">
+                                <Ionicons name="calendar" size={16} color="#6B7280" />
+                                <Text className="ml-2 text-[#6B7280] text-[13px] font-karla">
+                                  Available: {(opp as any).availabilityType}
+                                </Text>
+                              </View>
+                            )}
+                          </>
+                        )}
+
+                        {/* Workshop/Event Specific Info */}
+                        {(opp.category === "Workshop / Seminar" ||
+                          opp.category === "Competition / Event") && (
+                          <>
+                            {(opp as any).workshopDate && (
+                              <View className="flex-row items-center mb-2">
+                                <Ionicons name="calendar" size={16} color="#6B7280" />
+                                <Text className="ml-2 text-[#6B7280] text-[13px] font-karla">
+                                  {(opp as any).workshopDate}
+                                </Text>
+                              </View>
+                            )}
+                            {((opp as any).workshopStarts ||
+                              (opp as any).workshopEnds) && (
+                              <View className="flex-row items-center mb-2">
+                                <Ionicons name="time" size={16} color="#6B7280" />
+                                <Text className="ml-2 text-[#6B7280] text-[13px] font-karla">
+                                  {(opp as any).workshopStarts} - {(opp as any).workshopEnds}
+                                </Text>
+                              </View>
+                            )}
+                            {((opp as any).isInPersonWorkshop ||
+                              (opp as any).isInPersonEvent) && (
+                              <View className="flex-row items-center mb-2">
+                                <Ionicons name="location" size={16} color="#3B82F6" />
+                                <Text className="ml-2 text-[#6B7280] text-[13px] font-karla">
+                                  🏢 In-Person Event
+                                </Text>
+                              </View>
+                            )}
+                          </>
+                        )}
+
+                        {/* Description */}
+                        {opp.description && (
+                          <View className="mt-2 pt-2 border-t border-gray-200">
+                            <Text className="text-[#6B7280] text-[13px] font-karla line-clamp-2">
+                              {opp.description}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    </>
+                  );
                 })()
               : null}
 
